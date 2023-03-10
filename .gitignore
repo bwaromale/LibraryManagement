@@ -42,11 +42,15 @@
 ehthumbs.db
 Thumbs.db
 
-.bin
-..vs
-..vs/*
-.LibraryManagement/Data/*
-.LibraryManagement/Migrations/*
-.LibraryManagement/obj/*
-.LibraryManagement/bin/*
-.LibraryManagement/Properties/*
+# ignore files and directories in .vs folder
+.vs/
+
+# ignore files and directories in bin and obj folders
+LibraryManagement/bin/
+LibraryManagement/obj/
+
+# ignore files in Data folder
+LibraryManagement/Data/*
+
+# ignore files and directories in Migrations folder
+LibraryManagement/Migrations/*
