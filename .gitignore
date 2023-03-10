@@ -24,6 +24,8 @@
 *.config
 *.suo
 *.log
+*.user
+*.json
 # Logs and databases #
 ######################
 *.log
@@ -41,5 +43,9 @@ ehthumbs.db
 Thumbs.db
 
 .bin
-.vs
-.vs/
+..vs
+..vs/
+.LibraryManagement/Migrations
+.LibraryManagement/obj
+.LibraryManagement/bin
+.LibraryManagement/Properties
