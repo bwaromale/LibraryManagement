@@ -28,6 +28,16 @@ namespace LibraryManagement.Controllers
             return await _db.Publishers.ToListAsync();
 
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Publisher>> GetPublisher(int id)
+        {
+            var publisher = await _db.Publishers.FindAsync(id);
+            if(publisher == null)
+            {
+                return NotFound();
+            }
+            return Ok(publisher);
+        }
         [HttpPost]
         public async Task<ActionResult<PublisherCreateDTO>> PostPublisher([FromBody] PublisherCreateDTO publisher)
         {

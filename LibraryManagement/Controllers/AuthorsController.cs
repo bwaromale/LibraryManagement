@@ -23,7 +23,18 @@ namespace LibraryManagement.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
         {
-            return await _db.Authors.ToListAsync();
+           var authors = await _db.Authors.ToListAsync();
+            return Ok(authors);
+        }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Author>> GetAuthor(int id)
+        {
+            var author = await _db.Authors.FindAsync(id);
+            if (author == null)
+            {
+                return NotFound();
+            }
+            return author;
         }
         [HttpPost]
         public async Task<ActionResult<AuthorCreateDTO>> CreateAuthor([FromBody] AuthorCreateDTO authorCreate)

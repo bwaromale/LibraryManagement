@@ -7,6 +7,8 @@ namespace LibraryManagement.Models.DTO
     {
         [Required]
         public string PublisherName { get; set; }
+        [Required]
+        public string Address { get; set; }
         
     }
 }

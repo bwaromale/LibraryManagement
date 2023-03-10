@@ -27,6 +27,16 @@ namespace LibraryManagement.Controllers
             var books = _db.Books.ToListAsync();
             return await books;
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Book>> GetBook(int id)
+        {
+            var book = await _db.Books.FindAsync(id);
+            if(book == null)
+            {
+                return NotFound();
+            }
+            return Ok(book);
+        }
         [HttpPost]
         public async Task<ActionResult<BookCreateDTO>> BookCreate([FromBody] BookCreateDTO bookCreate)
         {
