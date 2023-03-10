@@ -9,8 +9,9 @@ namespace LibraryManagement.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int AuthorId { get; set; }
         public string AuthorName { get; set; }
+        [ForeignKey("Publisher")]
         public int PublisherId { get; set; }
-        public virtual Publisher Publishers { get; set; }
-        public virtual ICollection<Book> Books { get; set; }
+        public Publisher Publishers { get; set; }
+        public ICollection<Book> Books { get; set; }
     }
 }

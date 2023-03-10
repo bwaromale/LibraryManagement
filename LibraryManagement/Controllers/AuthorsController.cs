@@ -36,6 +36,16 @@ namespace LibraryManagement.Controllers
             }
             return author;
         }
+        [HttpGet("{id}/books")]
+        public async Task<ActionResult<Book>> GetBooksAttachedtoAuthor(int id)
+        {
+            var books = await _db.Books.Where(b => b.AuthorId == id).ToListAsync();
+            if (books.Count == 0)
+            {
+                return NotFound();
+            }
+            return Ok(books);
+        }
         [HttpPost]
         public async Task<ActionResult<AuthorCreateDTO>> CreateAuthor([FromBody] AuthorCreateDTO authorCreate)
         {
