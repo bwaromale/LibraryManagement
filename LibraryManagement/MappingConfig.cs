@@ -9,7 +9,9 @@ namespace LibraryManagement
         public MappingConfig()
         {
             CreateMap<Publisher, PublisherCreateDTO>().ReverseMap();
+            CreateMap<Publisher, PublisherDTO>().ReverseMap();  
             CreateMap<Author, AuthorCreateDTO>().ReverseMap();
+            CreateMap<Author, AuthorDTO>().ReverseMap();
             CreateMap<Book, BookCreateDTO>().ReverseMap();
         }
     }

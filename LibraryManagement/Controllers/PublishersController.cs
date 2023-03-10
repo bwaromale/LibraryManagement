@@ -2,10 +2,12 @@
 using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
+using LibraryManagement.Models.Repository;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 
 namespace LibraryManagement.Controllers
 {
@@ -14,53 +16,68 @@ namespace LibraryManagement.Controllers
     [ApiController]
     public class PublishersController : ControllerBase
     {
-        private readonly LibraryContext _db;
+        private readonly IPublisher _db;
         private readonly IMapper _mapper;
+        protected APIResponse _response;
 
-        public PublishersController(LibraryContext db, IMapper mapper)
+        public PublishersController(IPublisher db, IMapper mapper)
         {
             _db = db;
             _mapper = mapper;
+            this._response = new();
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Publisher>>> GetPublishers()
+        public async Task<ActionResult<APIResponse>> GetPublishers()
         {
-            return await _db.Publishers.ToListAsync();
-
+            try
+            {
+                IEnumerable<Publisher> publishers = await _db.GetAllAsync();
+                _response.Result = _mapper.Map<IEnumerable<PublisherDTO>>(publishers);
+                _response.IsSuccess = true;
+                _response.StatusCode = HttpStatusCode.OK;
+                return Ok(_response);
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+            }
+            return _response;
         }
         [HttpGet("{id}")]
-        public async Task<ActionResult<Publisher>> GetPublisher(int id)
+        public async Task<ActionResult<APIResponse>> GetPublisher(int id)
         {
-            var publisher = await _db.Publishers.FindAsync(id);
-            if(publisher == null)
-            {
-                return NotFound();
-            }
-            return Ok(publisher);
+            var publisher = await _db.GetAsync(id);
+            _response.Result = _mapper.Map<PublisherDTO>(publisher);
+            _response.IsSuccess = true;
+            _response.StatusCode = HttpStatusCode.OK;
+            return Ok(_response);
         }
         [HttpGet("{id}/authors")]
-        public async Task<ActionResult<Author>> GetAuthorsAttachedtoPublisher(int id)
+        public async Task<ActionResult<APIResponse>> GetAuthorsAttachedtoPublisher(int id)
         {
-            var authors = await _db.Authors.Where(p=>p.PublisherId == id).ToListAsync();
-
-            if (authors == null)
+            var authors = await _db.GetAuthorsAttachedtoPublisher(id);
+            if (!authors.Any())
             {
                 return NotFound();
             }
-            
-            return Ok(authors);
+            _response.Result = _mapper.Map<IEnumerable<AuthorDTO>>(authors);
+            return Ok(_response);
         }
         [HttpPost]
-        public async Task<ActionResult<PublisherCreateDTO>> PostPublisher([FromBody] PublisherCreateDTO publisher)
+        public async Task<ActionResult<APIResponse>> PostPublisher([FromBody] PublisherCreateDTO publisherDto)
         {
-            
-            
-            var map = _mapper.Map<Publisher>(publisher);
-            await _db.AddAsync(map);
-            await _db.SaveChangesAsync();
+            var publisher = _mapper.Map<Publisher>(publisherDto);
+            await _db.CreateAsync(publisher);
+            var publisherObj = _mapper.Map<PublisherCreateDTO>(publisher);
 
-            return CreatedAtAction(nameof(GetPublishers), new { name = publisher.PublisherName }, publisher);
+            
+            _response.Result = publisherObj;
+
+
+            return CreatedAtAction(nameof(GetPublishers), new { name = publisherDto.PublisherName }, _response);
         }
-    }
+
+    } 
 }
