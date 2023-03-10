@@ -19,7 +19,11 @@
 *.rar
 *.tar
 *.zip
-
+*.vsidx
+*.lock
+*.config
+*.suo
+*.log
 # Logs and databases #
 ######################
 *.log
@@ -38,3 +42,4 @@ Thumbs.db
 
 .bin
 .vs
+.vs/
