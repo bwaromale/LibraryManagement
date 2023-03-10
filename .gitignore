@@ -44,8 +44,9 @@ Thumbs.db
 
 .bin
 ..vs
-..vs/
-.LibraryManagement/Migrations
-.LibraryManagement/obj
-.LibraryManagement/bin
-.LibraryManagement/Properties
+..vs/*
+.LibraryManagement/Data/*
+.LibraryManagement/Migrations/*
+.LibraryManagement/obj/*
+.LibraryManagement/bin/*
+.LibraryManagement/Properties/*
