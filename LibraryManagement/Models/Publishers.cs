@@ -9,7 +9,7 @@ namespace LibraryManagement.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int PublisherId { get; set; }
         public string PublisherName { get; set; }
-        public DateTime CreatedDate { get; set; }
+        public DateTime CreatedDate { get; set; }= DateTime.Now;
         public virtual ICollection<Author> Authors { get; set; }
 
     }

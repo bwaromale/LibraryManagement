@@ -1,14 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace LibraryManagement.Models
+namespace LibraryManagement.Models.DTO
 {
-    public class Book
+    public class BookCreateDTO
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int BookId { get; set; }
-
         [Required]
         public string Title { get; set; }
         [Required]
@@ -21,11 +16,9 @@ namespace LibraryManagement.Models
         public double Price { get; set; }
         [Required]
         public bool Available { get; set; }
-        [Required]
-        public DateTime CreatedDate { get; set; }=DateTime.Now;
+        
         [Required]
         public int AuthorId { get; set; }
 
-        public virtual Author Author { get; set; }
     }
 }
