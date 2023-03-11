@@ -31,6 +31,15 @@ namespace LibraryManagement.Models.Repository.Implementation
         {
             return await dbSet.FindAsync(id);
         }
+        public async Task RemoveAsync(Expression<Func<T, bool>> propertyName)
+        {
+            T entity = await _db.Set<T>().FirstOrDefaultAsync(propertyName);
+            if(entity != null)
+            {
+                _db.Set<T>().Remove(entity);
+                await SaveAsync();
+            }
+        }
         public async Task<bool> CheckDuplicateAtCreation(Expression<Func<T, bool>> propertyName)
         {
             return await dbSet.AnyAsync(propertyName);

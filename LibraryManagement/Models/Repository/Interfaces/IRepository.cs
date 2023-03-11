@@ -7,6 +7,7 @@ namespace LibraryManagement.Models.Repository.Interfaces
         Task<List<T>> GetAllAsync();
         Task<T> GetAsync(int id);
         Task CreateAsync(T entity);
+        Task RemoveAsync(Expression<Func<T, bool>> propertyName);
         Task<bool> CheckDuplicateAtCreation(Expression<Func<T,bool>> propertyName);
         Task SaveAsync();
     }

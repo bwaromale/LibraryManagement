@@ -110,5 +110,32 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
+        [HttpDelete("authorName")]
+        public async Task<ActionResult<APIResponse>> DeleteAuthor(string authorName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(authorName))
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() { "Invalid input"};
+                    return BadRequest(_response);
+                }
+
+                await _db.RemoveAsync(a => a.AuthorName == authorName);
+                _response.StatusCode=HttpStatusCode.OK;
+                return Ok(_response);
+
+            }
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
+
+        }
     }
 }

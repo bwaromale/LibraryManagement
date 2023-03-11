@@ -93,5 +93,29 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
+        [HttpDelete("bookName")]
+        public async Task<ActionResult<APIResponse>> DeleteBook(string bookName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(bookName))
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() { $"{bookName} is an invalid input" };
+                    return BadRequest(_response);
+                }
+                await _db.RemoveAsync(b =>b.Title == bookName);
+                _response.StatusCode = HttpStatusCode.OK;
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
+        }
     }
 }

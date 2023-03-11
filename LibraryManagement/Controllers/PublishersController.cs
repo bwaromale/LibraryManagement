@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
@@ -13,12 +14,14 @@ namespace LibraryManagement.Controllers
     public class PublishersController : ControllerBase
     {
         private readonly IPublisherRepository _db;
+        private readonly LibraryContext _context;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public PublishersController(IPublisherRepository db, IMapper mapper)
+        public PublishersController(IPublisherRepository db, IMapper mapper, LibraryContext context)
         {
             _db = db;
+            _context = context;
             _mapper = mapper;
             this._response = new();
         }
@@ -104,6 +107,33 @@ namespace LibraryManagement.Controllers
                 return CreatedAtAction(nameof(GetPublishers), new { name = publisherDto.PublisherName }, _response);
             }
             catch(Exception ex)
+            {
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.IsSuccess = false;
+                _response.ErrorMessages = new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
+        }
+        [HttpDelete("{publisherName}")]
+        public async Task<ActionResult<APIResponse>> DeletePublisher(string publisherName)
+        {
+            try
+            {
+                 
+                if (string.IsNullOrEmpty(publisherName))
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() { "Invalid input"};
+                    _response.IsSuccess = false;
+                    return BadRequest(_response);
+                }
+                
+                await _db.RemoveAsync(p => p.PublisherName ==publisherName);
+                _response.StatusCode = HttpStatusCode.OK;
+                return Ok(_response);
+
+            }
+            catch (Exception ex)
             {
                 _response.StatusCode = HttpStatusCode.BadRequest;
                 _response.IsSuccess = false;
