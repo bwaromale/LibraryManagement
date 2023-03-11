@@ -1,8 +1,9 @@
 ﻿using LibraryManagement.Data;
+using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
-namespace LibraryManagement.Models.Repository
+namespace LibraryManagement.Models.Repository.Implementation
 {
     public class Repository<T> : IRepository<T> where T : class
     {
@@ -30,12 +31,16 @@ namespace LibraryManagement.Models.Repository
         {
             return await dbSet.FindAsync(id);
         }
+        public async Task<bool> CheckDuplicateAtCreation(Expression<Func<T, bool>> propertyName)
+        {
+            return await dbSet.AnyAsync(propertyName);
+        }
 
         public async Task SaveAsync()
         {
             await _db.SaveChangesAsync();
         }
 
-        
+
     }
 }
