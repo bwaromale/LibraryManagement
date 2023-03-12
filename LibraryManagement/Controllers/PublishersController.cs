@@ -4,6 +4,7 @@ using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace LibraryManagement.Controllers
@@ -14,14 +15,12 @@ namespace LibraryManagement.Controllers
     public class PublishersController : ControllerBase
     {
         private readonly IPublisherRepository _db;
-        private readonly LibraryContext _context;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public PublishersController(IPublisherRepository db, IMapper mapper, LibraryContext context)
+        public PublishersController(IPublisherRepository db, IMapper mapper)
         {
             _db = db;
-            _context = context;
             _mapper = mapper;
             this._response = new();
         }
@@ -48,7 +47,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var publisher = await _db.GetAsync(id);
+                var publisher = await _db.GetAsync(p=>p.PublisherId ==id);
                 _response.Result = _mapper.Map<PublisherDTO>(publisher);
                 _response.IsSuccess = true;
                 _response.StatusCode = HttpStatusCode.OK;
@@ -138,6 +137,44 @@ namespace LibraryManagement.Controllers
                 _response.StatusCode = HttpStatusCode.BadRequest;
                 _response.IsSuccess = false;
                 _response.ErrorMessages = new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
+        }
+        [HttpPut("publisherName")]
+        public async Task<ActionResult<APIResponse>> UpdatePublisher(string publisherName, [FromBody] PublisherDTO publisherDTO)
+        {
+            try
+            {
+                if(publisherDTO == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() { "Invalid input"};
+                    return BadRequest(_response);
+                }
+                var publisher = await _db.GetAsync(p => p.PublisherName == publisherName);
+                if (publisher == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages = new List<string>() { $"Publisher with name '{publisherName}' not found" };
+                    return NotFound(_response);
+                }
+                
+                publisher.PublisherName = publisherDTO.PublisherName;
+                publisher.Address = publisherDTO.Address;
+                publisher.UpdatedDate = DateTime.Now;
+                await _db.UpdateAsync(publisher);
+
+                _response.StatusCode=HttpStatusCode.OK;
+                _response.Result = publisherDTO;
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages=new List<string>() { ex.ToString() };
                 return BadRequest(_response);
             }
         }

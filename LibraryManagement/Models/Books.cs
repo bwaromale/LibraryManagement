@@ -23,6 +23,7 @@ namespace LibraryManagement.Models
         public bool Available { get; set; }
         [Required]
         public DateTime CreatedDate { get; set; }=DateTime.Now;
+        public DateTime UpdatedTime { get; set; }
         [Required]
         public int AuthorId { get; set; }
 

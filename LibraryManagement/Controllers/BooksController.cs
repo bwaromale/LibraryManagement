@@ -47,7 +47,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var book = await _db.GetAsync(id);
+                var book = await _db.GetAsync(b => b.BookId == id);
                 if (book == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
@@ -114,6 +114,48 @@ namespace LibraryManagement.Controllers
                 _response.IsSuccess = false;
                 _response.StatusCode = HttpStatusCode.BadRequest;
                 _response.ErrorMessages = new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
+        }
+        [HttpPut("{bookName}")]
+        public async Task<ActionResult<APIResponse>> UpdateBook(string bookName, [FromBody] BookCreateDTO bookCreateDTO)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(bookName) || bookCreateDTO == null) 
+                { 
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() { "Invalid input" };
+                    return BadRequest(_response);
+                }
+                var book = await _db.GetAsync(b=>b.Title == bookName);
+                if (book == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages = new List<string>() { "Not found" };
+                    return NotFound(_response);
+                }
+                book.Title = bookCreateDTO.Title;
+                book.CoverType = bookCreateDTO.CoverType;
+                book.NoOfPages = bookCreateDTO.NoOfPages;
+                book.ForewardBy = bookCreateDTO.ForewardBy;
+                book.Price = bookCreateDTO.Price;
+                book.Available = bookCreateDTO.Available;
+                book.AuthorId = bookCreateDTO.AuthorId;
+
+                await _db.UpdateAsync(book);
+                
+                _response.StatusCode=HttpStatusCode.OK;
+                _response.Result = bookCreateDTO;
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages = new List<string>() { ex.Message.ToString() };
                 return BadRequest(_response);
             }
         }

@@ -11,6 +11,7 @@ namespace LibraryManagement.Models
         public string PublisherName { get; set; }
         public string Address { get; set; }
         public DateTime CreatedDate { get; set; }= DateTime.Now;
+        public DateTime UpdatedDate { get; set; }
         public virtual ICollection<Author> Authors { get; set; }
 
     }

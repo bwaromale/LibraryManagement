@@ -27,16 +27,16 @@ namespace LibraryManagement.Models.Repository.Implementation
             return await dbSet.ToListAsync();
         }
 
-        public async Task<T> GetAsync(int id)
+        public async Task<T> GetAsync(Expression<Func<T, bool>> propertyName)
         {
-            return await dbSet.FindAsync(id);
+            return await dbSet.FirstOrDefaultAsync(propertyName);
         }
         public async Task RemoveAsync(Expression<Func<T, bool>> propertyName)
         {
-            T entity = await _db.Set<T>().FirstOrDefaultAsync(propertyName);
+            T entity = await dbSet.FirstOrDefaultAsync(propertyName);
             if(entity != null)
             {
-                _db.Set<T>().Remove(entity);
+                dbSet.Remove(entity);
                 await SaveAsync();
             }
         }
@@ -44,7 +44,11 @@ namespace LibraryManagement.Models.Repository.Implementation
         {
             return await dbSet.AnyAsync(propertyName);
         }
-
+        public async Task UpdateAsync(T entity)
+        {
+            _db.Entry(entity).State = EntityState.Modified;
+            await SaveAsync();
+        }
         public async Task SaveAsync()
         {
             await _db.SaveChangesAsync();

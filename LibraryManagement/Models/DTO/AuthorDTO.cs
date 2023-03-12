@@ -7,6 +7,7 @@ namespace LibraryManagement.Models.DTO
     {
         [Required]
         public string AuthorName { get; set; }
-       
+        
+
     }
 }

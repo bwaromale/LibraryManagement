@@ -47,7 +47,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var author = await _db.GetAsync(id);
+                var author = await _db.GetAsync(a => a.AuthorId == id);
                 if(author == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
@@ -136,6 +136,45 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
 
+        }
+        [HttpPut("{authorName}")]
+        public async Task<ActionResult<APIResponse>> UpdateAuthor(string authorName, [FromBody] AuthorCreateDTO authorCreateDTO)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(authorName) || authorCreateDTO == null)
+                {
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.IsSuccess = false;
+                    _response.ErrorMessages = new List<string>() { "Invalid input" };
+                    return BadRequest(_response);
+                }
+
+                var author = await _db.GetAsync(a => a.AuthorName == authorName);
+                
+                if(author == null)
+                {
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.IsSuccess = false;
+                    _response.ErrorMessages = new List<string>() { $"Author with name '{authorName}' not found" };
+                    return NotFound(_response);
+                }
+
+                author.AuthorName = authorCreateDTO.AuthorName;
+                author.PublisherId = authorCreateDTO.PublisherId;
+                author.UpdatedTime = DateTime.Now;
+
+                await _db.UpdateAsync(author);
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = authorCreateDTO;
+                return Ok(_response);
+            }
+            catch(Exception ex) {
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.IsSuccess = false;
+                _response.ErrorMessages= new List<string>() { ex.ToString() };
+                return BadRequest(_response);
+            }
         }
     }
 }
