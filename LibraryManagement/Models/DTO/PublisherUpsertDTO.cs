@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LibraryManagement.Models.DTO
 {
-    public class PublisherCreateDTO
+    public class PublisherUpsertDTO
     {
         [Required]
         public string PublisherName { get; set; }

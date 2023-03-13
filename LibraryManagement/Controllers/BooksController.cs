@@ -42,19 +42,19 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
-        [HttpGet("{id}")]
-        public async Task<ActionResult<APIResponse>> GetBook(int id)
+        [HttpGet("{bookName}")]
+        public async Task<ActionResult<APIResponse>> GetBook(string bookName)
         {
             try
             {
-                var book = await _db.GetAsync(b => b.BookId == id);
+                var book = await _db.GetAsync(b => b.Title == bookName);
                 if (book == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
                     _response.ErrorMessages = new List<string>() { "Not Found" };
                     return NotFound(_response);
                 }
-                _response.Result = _mapper.Map<BookDTO>(book);
+                _response.Result = _mapper.Map<BookUpsertDTO>(book);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
             }
@@ -67,7 +67,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
-        public async Task<ActionResult<APIResponse>> BookCreate([FromBody] BookCreateDTO bookCreate)
+        public async Task<ActionResult<APIResponse>> BookCreate([FromBody] BookUpsertDTO bookCreate)
         {
             try
             {
@@ -81,8 +81,8 @@ namespace LibraryManagement.Controllers
                     return BadRequest(_response);
                 }
                 await _db.CreateAsync(book);
-
-                _response.Result = _mapper.Map<BookCreateDTO>(book);
+                _response.StatusCode = HttpStatusCode.Created;
+                _response.Result = _mapper.Map<BookUpsertDTO>(book);
                 return CreatedAtAction(nameof(GetBooks), new {b = bookCreate.Title}, _response);
             }
             catch(Exception ex)
@@ -93,7 +93,7 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
-        [HttpDelete("bookName")]
+        [HttpDelete("{bookName}")]
         public async Task<ActionResult<APIResponse>> DeleteBook(string bookName)
         {
             try
@@ -104,6 +104,14 @@ namespace LibraryManagement.Controllers
                     _response.StatusCode = HttpStatusCode.BadRequest;
                     _response.ErrorMessages = new List<string>() { $"{bookName} is an invalid input" };
                     return BadRequest(_response);
+                }
+                var book = await _db.GetAsync(b => b.Title == bookName);
+                if(book == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages = new List<string>() { $"Book with name '{bookName}' not found" };
+                    return NotFound(_response);
                 }
                 await _db.RemoveAsync(b =>b.Title == bookName);
                 _response.StatusCode = HttpStatusCode.OK;
@@ -118,7 +126,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPut("{bookName}")]
-        public async Task<ActionResult<APIResponse>> UpdateBook(string bookName, [FromBody] BookCreateDTO bookCreateDTO)
+        public async Task<ActionResult<APIResponse>> UpdateBook(string bookName, [FromBody] BookUpsertDTO bookCreateDTO)
         {
             try
             {
@@ -134,7 +142,7 @@ namespace LibraryManagement.Controllers
                 {
                     _response.IsSuccess = false;
                     _response.StatusCode = HttpStatusCode.NotFound;
-                    _response.ErrorMessages = new List<string>() { "Not found" };
+                    _response.ErrorMessages = new List<string>() { $"'{bookName}' Not found" };
                     return NotFound(_response);
                 }
                 book.Title = bookCreateDTO.Title;

@@ -18,12 +18,6 @@ namespace LibraryManagement.Models.Repository.Implementation
             var authors = _db.Authors.Where(p => p.PublisherId == id).ToListAsync();
             return await authors;
         }
-        //public async Task<Publisher> UpdatePublisher(Publisher entity)
-        //{
-        //    entity.UpdatedDate = DateTime.Now;
-        //    _db.Publishers.UpdateRange(entity);
-        //    await _db.SaveChangesAsync();
-        //    return entity;
-        //}
+        
     }
 }

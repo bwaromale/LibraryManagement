@@ -42,12 +42,12 @@ namespace LibraryManagement.Controllers
             }
             
         }
-        [HttpGet("{id}")]
-        public async Task<ActionResult<APIResponse>> GetAuthor(int id)
+        [HttpGet("{authorName}")]
+        public async Task<ActionResult<APIResponse>> GetAuthor(string authorName)
         {
             try
             {
-                var author = await _db.GetAsync(a => a.AuthorId == id);
+                var author = await _db.GetAsync(a => a.AuthorName == authorName);
                 if(author == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
@@ -92,7 +92,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
-        public async Task<ActionResult<APIResponse>> CreateAuthor([FromBody] AuthorCreateDTO authorCreate)
+        public async Task<ActionResult<APIResponse>> CreateAuthor([FromBody] AuthorUpsertDTO authorCreate)
         {
             try
             {
@@ -110,7 +110,7 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
-        [HttpDelete("authorName")]
+        [HttpDelete("{authorName}")]
         public async Task<ActionResult<APIResponse>> DeleteAuthor(string authorName)
         {
             try
@@ -122,7 +122,14 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { "Invalid input"};
                     return BadRequest(_response);
                 }
-
+                var author = await _db.GetAsync(a => a.AuthorName == authorName);
+                if(author == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages = new List<string>() { $"Author with name '{authorName}' not found" };
+                    return NotFound(_response);
+                }
                 await _db.RemoveAsync(a => a.AuthorName == authorName);
                 _response.StatusCode=HttpStatusCode.OK;
                 return Ok(_response);
@@ -138,7 +145,7 @@ namespace LibraryManagement.Controllers
 
         }
         [HttpPut("{authorName}")]
-        public async Task<ActionResult<APIResponse>> UpdateAuthor(string authorName, [FromBody] AuthorCreateDTO authorCreateDTO)
+        public async Task<ActionResult<APIResponse>> UpdateAuthor(string authorName, [FromBody] AuthorUpsertDTO authorCreateDTO)
         {
             try
             {

@@ -42,13 +42,13 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             } 
         }
-        [HttpGet("{id}")]
-        public async Task<ActionResult<APIResponse>> GetPublisher(int id)
+        [HttpGet("{publisherName}")]
+        public async Task<ActionResult<APIResponse>> GetPublisher(string publisherName)
         {
             try
             {
-                var publisher = await _db.GetAsync(p=>p.PublisherId ==id);
-                _response.Result = _mapper.Map<PublisherDTO>(publisher);
+                var publisher = await _db.GetAsync(p=>p.PublisherName ==publisherName);
+                _response.Result = _mapper.Map<PublisherUpsertDTO>(publisher);
                 _response.IsSuccess = true;
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
@@ -84,7 +84,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
-        public async Task<ActionResult<APIResponse>> PostPublisher([FromBody] PublisherCreateDTO publisherDto)
+        public async Task<ActionResult<APIResponse>> PostPublisher([FromBody] PublisherUpsertDTO publisherDto)
         {
             try
             {
@@ -99,7 +99,7 @@ namespace LibraryManagement.Controllers
                 }
                 await _db.CreateAsync(publisher);
 
-                _response.Result = _mapper.Map<PublisherCreateDTO>(publisher);
+                _response.Result = _mapper.Map<PublisherUpsertDTO>(publisher);
                 _response.StatusCode = HttpStatusCode.Created;
 
 
@@ -126,7 +126,14 @@ namespace LibraryManagement.Controllers
                     _response.IsSuccess = false;
                     return BadRequest(_response);
                 }
-                
+                var publisher = await _db.GetAsync(p=>p.PublisherName == publisherName);
+                if(publisher == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages = new List<string>() {$"'{publisherName}' not found" };
+                    return BadRequest(_response);
+                }
                 await _db.RemoveAsync(p => p.PublisherName ==publisherName);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
@@ -140,8 +147,8 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
-        [HttpPut("publisherName")]
-        public async Task<ActionResult<APIResponse>> UpdatePublisher(string publisherName, [FromBody] PublisherDTO publisherDTO)
+        [HttpPut("{publisherName}")]
+        public async Task<ActionResult<APIResponse>> UpdatePublisher(string publisherName, [FromBody] PublisherUpsertDTO publisherDTO)
         {
             try
             {

@@ -2,7 +2,7 @@
 
 namespace LibraryManagement.Models.DTO
 {
-    public class BookCreateDTO
+    public class BookUpsertDTO
     {
         [Required]
         public string Title { get; set; }
