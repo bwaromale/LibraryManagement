@@ -2,7 +2,7 @@
 
 namespace LibraryManagement.Models.DTO
 {
-    public class RegisterDTO
+    public class AdminRegisterDTO
     {
         [Required]
         public string UserName { get; set; }

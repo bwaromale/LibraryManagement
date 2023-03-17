@@ -14,6 +14,7 @@ namespace LibraryManagement
             CreateMap<Author, AuthorDTO>().ReverseMap();
             CreateMap<Book, BookUpsertDTO>().ReverseMap();
             CreateMap<Book, BookDTO>().ReverseMap();
+            CreateMap<User, RegisterDTO>().ReverseMap();
         }
     }
 }

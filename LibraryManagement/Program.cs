@@ -4,8 +4,14 @@ using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.Repository.Implementation;
 using LibraryManagement.Models.Repository.Interfaces;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,16 +26,40 @@ builder.Services.AddDbContext<LibraryContext>(
             builder.Configuration.GetConnectionString("DefaultSQLConnection")
             );
     });
+
 builder.Services.AddScoped <IRepository<Book>, Repository<Book>>();
 builder.Services.AddScoped<IPublisherRepository, PublisherRepository>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+builder.Services.AddScoped<IUser, UserRespository>();
 
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+//builder.Services.AddSingleton<IConfiguration>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        Description = "Standard Authorization Header using the Bearer Scheme(\"Bearer {token}\")",
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+    options.OperationFilter<SecurityRequirementsOperationFilter>();
+});
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => {
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            builder.Configuration.GetSection("ApiSettings:Phrase").Value)),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+
+    };
+});
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -40,6 +70,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

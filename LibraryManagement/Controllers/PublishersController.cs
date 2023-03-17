@@ -3,6 +3,7 @@ using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -12,6 +13,7 @@ namespace LibraryManagement.Controllers
     [Produces("application/json")]
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PublishersController : ControllerBase
     {
         private readonly IPublisherRepository _db;
@@ -48,6 +50,13 @@ namespace LibraryManagement.Controllers
             try
             {
                 var publisher = await _db.GetAsync(p=>p.PublisherName ==publisherName);
+                if(publisher == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add($"'{publisherName}' not found");
+                    return NotFound(_response);
+                }
                 _response.Result = _mapper.Map<PublisherUpsertDTO>(publisher);
                 _response.IsSuccess = true;
                 _response.StatusCode = HttpStatusCode.OK;
