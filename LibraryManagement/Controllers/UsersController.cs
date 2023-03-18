@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace LibraryManagement.Controllers
@@ -39,12 +40,6 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                //var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-                //var tokenHandler = new JwtSecurityTokenHandler();
-                //var apiSettings = new ApiSettings();
-                //var validationParameters = apiSettings.GetTokenValidationParameters();
-                //SecurityToken validatedToken;
-                //var principal = tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
                 var users = await _userRepo.GetAllAsync();
                 //var map = _mapper.Map<RegisterDTO>(users);
                 _response.StatusCode = HttpStatusCode.OK;
@@ -125,11 +120,11 @@ namespace LibraryManagement.Controllers
                     return BadRequest(_response);
 
                 }
-                string hashPassword = BCrypt.Net.BCrypt.HashPassword(registerDTO.Password);
+                
                 User admin = new User()
                 {
                     UserName = registerDTO.UserName,
-                    Password = hashPassword,
+                    Password = PasswordHash(registerDTO.Password),
                     FirstName = registerDTO.FirstName,
                     LastName = registerDTO.LastName,
                     Email = registerDTO.Email,
@@ -175,5 +170,102 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
+        [HttpPost("forgot-password")]
+        public async Task<ActionResult<APIResponse>> ForgotPassword(string userName, string email)
+        {
+            try
+            {
+                var user = await _userRepo.GetAsync(u => u.UserName == userName && u.Email == email);
+                if (user == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid username or email");
+                    return BadRequest(_response);
+                }
+                user.PasswordResetToken = CreateToken();
+                user.ResetTokenExpires = DateTime.Now.AddDays(1);
+                await _userRepo.SaveAsync();
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = user.PasswordResetToken;
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add(ex.Message.ToString());
+                return BadRequest(_response);
+            }
+        }
+        [HttpPost("reset-password")]
+        public async Task<ActionResult<APIResponse>> ResetPassword(ResetPasswordDto resetPassword)
+        {
+            try
+            {
+                if(resetPassword == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid input");
+                    return BadRequest(_response);
+                }
+
+                var user = await _userRepo.GetAsync(u => u.UserName == resetPassword.Username && u.Email == resetPassword.Email);
+                if (user == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Invalid username or email");
+                    return NotFound(_response);
+                }
+
+                //var checkToken = await _userRepo.GetAsync(c => c.PasswordResetToken == resetPassword.ResetToken && c.ResetTokenExpires < DateTime.Now);
+                var checkToken = await _userRepo.GetAsync(c => c.PasswordResetToken == resetPassword.ResetToken);
+                if (checkToken == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid password reset token");
+                    return BadRequest(_response);
+                }
+
+                if (string.IsNullOrEmpty(resetPassword.Password))
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid input");
+                    return BadRequest(_response);
+                }
+
+                user.Password = PasswordHash(resetPassword.Password);
+                user.UpdatedTime = DateTime.Now;
+                user.PasswordResetToken = null;
+                user.ResetTokenExpires = null;
+
+                await _userRepo.SaveAsync();
+
+                _response.StatusCode=HttpStatusCode.OK;
+                _response.Result = "Password Reset Successful";
+
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add(ex.Message.ToString());
+                return BadRequest(_response);
+            }
+        }
+        private string CreateToken()
+        {
+            return Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+        }
+        private string PasswordHash(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+        
     }
 }
