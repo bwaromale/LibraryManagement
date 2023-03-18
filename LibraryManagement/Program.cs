@@ -30,6 +30,7 @@ builder.Services.AddScoped<IPublisherRepository, PublisherRepository>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 builder.Services.AddScoped<IUser, UserRespository>();
 builder.Services.AddScoped<IRepository<User>, Repository<User>>();
+builder.Services.AddScoped<IEmail, EmailService>();
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
 builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));

@@ -25,13 +25,16 @@ namespace LibraryManagement.Controllers
         private readonly IMapper _mapper;
         protected APIResponse _response;
         private readonly IUser _userRepo;
+        private readonly IEmail _emailService;
+
         //private string secretKey;
-        public UsersController(IMapper mapper, IUser userRepo)
+        public UsersController(IMapper mapper, IUser userRepo, IEmail emailService)
         {
             
             _mapper = mapper;
             this._response = new APIResponse();
             _userRepo = userRepo;
+            _emailService = emailService;
             
         }
         [HttpGet]
@@ -186,6 +189,17 @@ namespace LibraryManagement.Controllers
                 user.PasswordResetToken = CreateToken();
                 user.ResetTokenExpires = DateTime.Now.AddDays(1);
                 await _userRepo.SaveAsync();
+
+                EmailDto emailDto = new EmailDto()
+                {
+                    From = "noreply@shawnlibrary.com",
+                    To = email,
+                    Subject = "Reset Password Request",
+                    Body = $"Dear, {user.FirstName} {user.LastName}, a password reset request. The token for your password reset is {user.PasswordResetToken}",
+
+                };
+                _emailService.SendEmail(emailDto);
+
                 _response.StatusCode = HttpStatusCode.OK;
                 _response.Result = user.PasswordResetToken;
                 return Ok(_response);
@@ -199,7 +213,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost("reset-password")]
-        public async Task<ActionResult<APIResponse>> ResetPassword(ResetPasswordDto resetPassword)
+        public async Task<ActionResult<APIResponse>> ResetPassword([FromBody]ResetPasswordDto resetPassword)
         {
             try
             {
@@ -244,7 +258,15 @@ namespace LibraryManagement.Controllers
                 user.ResetTokenExpires = null;
 
                 await _userRepo.SaveAsync();
+                EmailDto emailDto = new EmailDto()
+                {
+                    From = "noreply@shawnlibrary.com",
+                    To = resetPassword.Email,
+                    Subject="Reset Password Request",
+                    Body = $"Dear, {user.FirstName} {user.LastName}, this is to inform you that password has successfully reset to your new choice. You can now log in with your new credentials",
 
+                };
+                _emailService.SendEmail(emailDto);
                 _response.StatusCode=HttpStatusCode.OK;
                 _response.Result = "Password Reset Successful";
 
