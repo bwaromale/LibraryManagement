@@ -5,23 +5,25 @@ namespace LibraryManagement.Models
 {
     public class ApiSettings
     {
-        public string Phrase { get; set; }
-        //public string Secret { get; set; }
-        //public string JwtIssuer { get; set; } = "shawnlibrary.com";
-        //public string JwtAudience { get; set; } = "shawnlibrary.com";
-        //public string JwtSecretKey { get; set; } = "shawnsecret";
+        //private readonly IConfiguration _configuration;
+
+        //public ApiSettings(IConfiguration configuration)
+        //{
+        //    _configuration = configuration;
+        //}
+
+        public string SecretKey { get; set; }
+
 
         //public TokenValidationParameters GetTokenValidationParameters()
         //{
         //    return new TokenValidationParameters
         //    {
-        //        ValidateIssuer = true,
-        //        ValidateAudience = true,
+        //        ValidateIssuer = false,
+        //        ValidateAudience = false,
         //        ValidateLifetime = true,
         //        ValidateIssuerSigningKey = true,
-        //        ValidIssuer = JwtIssuer,
-        //        ValidAudience = JwtAudience,
-        //        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(JwtSecretKey))
+        //        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("ApiSettings:SecretKey").Value))
         //    };
         //}
     }

@@ -12,13 +12,14 @@ namespace LibraryManagement.Models.Repository.Implementation
 {
     public class UserRespository : Repository<User>, IUser
     {
-        private readonly LibraryContext _db;
-        private readonly ApiSettings _appSettings;
+        
+        private readonly IRepository<User> _repository;
+        private readonly ApiSettings _apiSettings;
 
-        public UserRespository(LibraryContext db, IOptions<ApiSettings> appSettings): base(db)
+        public UserRespository(LibraryContext db,IRepository<User> repository, IOptions<ApiSettings> apiSettings): base(db)
         {
-            _db = db;
-            _appSettings = appSettings.Value;
+            _repository = repository;
+            _apiSettings = apiSettings.Value;
         }
 
         public async Task<LoginResponse> Login(LoginRequest loginRequest)
@@ -28,8 +29,9 @@ namespace LibraryManagement.Models.Repository.Implementation
                 throw new Exception("Invalid Login");
                 
             }
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == loginRequest.UserName);
-            if (user == null)
+            
+            var user = await _repository.GetAsync(u => u.UserName == loginRequest.UserName);
+            if (user == null || !BCrypt.Net.BCrypt.Verify(loginRequest.Password, user.Password))
             {
                 return new LoginResponse()
                 {
@@ -51,8 +53,9 @@ namespace LibraryManagement.Models.Repository.Implementation
             List<Claim> claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role),
             };
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_appSettings.Phrase));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_apiSettings.SecretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
             
             var token = new JwtSecurityToken(

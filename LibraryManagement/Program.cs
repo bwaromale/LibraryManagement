@@ -1,4 +1,3 @@
-using AutoMapper;
 using LibraryManagement;
 using LibraryManagement.Data;
 using LibraryManagement.Models;
@@ -6,8 +5,7 @@ using LibraryManagement.Models.Repository.Implementation;
 using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
@@ -31,11 +29,10 @@ builder.Services.AddScoped <IRepository<Book>, Repository<Book>>();
 builder.Services.AddScoped<IPublisherRepository, PublisherRepository>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 builder.Services.AddScoped<IUser, UserRespository>();
-
+builder.Services.AddScoped<IRepository<User>, Repository<User>>();
 
 builder.Services.AddAutoMapper(typeof(MappingConfig));
-
-//builder.Services.AddSingleton<IConfiguration>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -48,18 +45,20 @@ builder.Services.AddSwaggerGen(options =>
     });
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => {
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            builder.Configuration.GetSection("ApiSettings:Phrase").Value)),
+            builder.Configuration.GetSection("ApiSettings:SecretKey").Value)),
         ValidateIssuer = false,
         ValidateAudience = false,
 
     };
 });
-builder.Services.Configure<ApiSettings>(builder.Configuration.GetSection("ApiSettings"));
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

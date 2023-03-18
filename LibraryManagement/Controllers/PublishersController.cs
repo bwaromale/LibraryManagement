@@ -13,7 +13,7 @@ namespace LibraryManagement.Controllers
     [Produces("application/json")]
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles ="Admin")]
     public class PublishersController : ControllerBase
     {
         private readonly IPublisherRepository _db;
@@ -33,6 +33,13 @@ namespace LibraryManagement.Controllers
             try
             {
                 IEnumerable<Publisher> publishers = await _db.GetAllAsync();
+                if (!publishers.Any())
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Publishers records is empty");
+                    return NotFound(_response);
+                }
                 _response.Result = _mapper.Map<IEnumerable<PublisherDTO>>(publishers);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);

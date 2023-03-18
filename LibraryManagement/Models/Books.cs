@@ -22,6 +22,9 @@ namespace LibraryManagement.Models
         [Required]
         public bool Available { get; set; }
         [Required]
+        private int TotalCopies { get; set; }
+        private int BorrowedCopies { get; set; }
+        [Required]
         public DateTime CreatedDate { get; set; }=DateTime.Now;
         public DateTime UpdatedTime { get; set; }
         [Required]
