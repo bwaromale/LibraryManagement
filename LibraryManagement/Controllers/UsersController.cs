@@ -1,18 +1,11 @@
 ﻿using AutoMapper;
-using BCrypt.Net;
-using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Net;
-using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace LibraryManagement.Controllers
 {
@@ -43,10 +36,10 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var users = await _userRepo.GetAllAsync();
-                //var map = _mapper.Map<RegisterDTO>(users);
+                IEnumerable<User> users = await _userRepo.GetAllAsync();
+                var map = _mapper.Map<IEnumerable<UserResponseDto>>(users);
                 _response.StatusCode = HttpStatusCode.OK;
-                _response.Result = users;
+                _response.Result = map;
                 return Ok(_response);
             }
             catch (Exception ex)
@@ -194,7 +187,7 @@ namespace LibraryManagement.Controllers
                 {
                     From = "noreply@shawnlibrary.com",
                     To = email,
-                    Subject = "Reset Password Request",
+                    Subject = "Password Reset Notification",
                     Body = $"Dear, {user.FirstName} {user.LastName}, a password reset request. The token for your password reset is {user.PasswordResetToken}",
 
                 };
@@ -262,7 +255,7 @@ namespace LibraryManagement.Controllers
                 {
                     From = "noreply@shawnlibrary.com",
                     To = resetPassword.Email,
-                    Subject="Reset Password Request",
+                    Subject="Reset Password Notification",
                     Body = $"Dear, {user.FirstName} {user.LastName}, this is to inform you that password has successfully reset to your new choice. You can now log in with your new credentials",
 
                 };

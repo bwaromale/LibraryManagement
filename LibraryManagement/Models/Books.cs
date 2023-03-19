@@ -18,12 +18,14 @@ namespace LibraryManagement.Models
         [Required]
         public string ForewardBy { get; set; }
         [Required]
+        public string ISBN { get; set; }
+        [Required]
         public double Price { get; set; }
         [Required]
         public bool Available { get; set; }
         [Required]
-        private int TotalCopies { get; set; }
-        private int BorrowedCopies { get; set; }
+        public int TotalCopies { get; set; }
+        public int BorrowedCopies { get; set; }
         [Required]
         public DateTime CreatedDate { get; set; }=DateTime.Now;
         public DateTime UpdatedTime { get; set; }
@@ -32,4 +34,5 @@ namespace LibraryManagement.Models
 
         public virtual Author Author { get; set; }
     }
+    
 }
