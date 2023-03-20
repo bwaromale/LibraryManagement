@@ -6,6 +6,7 @@ namespace LibraryManagement.Models.Repository.Interfaces
     {
         Task<List<T>> GetAllAsync();
         Task<T> GetAsync(Expression<Func<T, bool>> propertyName);
+        Task<T> GetSingleAsync(Expression<Func<T, bool>> predicate, string includeProperties = "");
         Task CreateAsync(T entity);
         Task RemoveAsync(Expression<Func<T, bool>> propertyName);
         Task<bool> CheckDuplicateAtCreation(Expression<Func<T,bool>> propertyName);

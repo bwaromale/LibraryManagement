@@ -1,10 +1,8 @@
-﻿using LibraryManagement.Data;
+﻿using AutoMapper;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace LibraryManagement.Controllers
@@ -17,17 +15,18 @@ namespace LibraryManagement.Controllers
         private readonly IBorrowBook _service;
         private readonly IUser _userServ;
         private readonly IRepository<Book> _bookServ;
+        private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ)
+        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IMapper mapper)
         {
             _service  = service;
             _userServ = user;
             _bookServ = bookServ;
+            _mapper = mapper;
             this._response = new APIResponse();
         }
 
-        // GET: api/Borrowing
         [HttpGet]
         public async Task<ActionResult<APIResponse>> GetBorrowings()
         {
@@ -49,14 +48,13 @@ namespace LibraryManagement.Controllers
              
         }
 
-        // GET: api/Borrowing/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Borrowing>> GetBorrowing(int id)
         {
             try
             {
+                
                 var borrowing = await _service.GetAsync(b => b.BorrowingId == id);
-
                 if (borrowing == null)
                 {
                     _response.IsSuccess = false;
@@ -159,9 +157,54 @@ namespace LibraryManagement.Controllers
             return NoContent();
         }
 
-        //private bool BorrowingExists(int id)
-        //{
-        //    return _context.Borrowing.Any(e => e.BorrowingId == id);
-        //}
+        [HttpPut("approve-borrowing")]
+        public async Task<ActionResult<APIResponse>> AttendantApproveBorrowing(ApprovalDto approvalDto)
+        {
+            if(approvalDto == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add("Invalid input");
+                return BadRequest(_response);
+            }
+
+            var request = await _service.GetAsync(r=>r.BorrowingId ==approvalDto.BorrowingId);
+            if (request == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.NotFound;
+                _response.ErrorMessages.Add("Borrowing request not found");
+                return NotFound(_response);
+            }
+            var approver = await _userServ.GetAsync(a => a.UserId == approvalDto.ApproverId);
+            if(approver == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.NotFound;
+                _response.ErrorMessages.Add("Invalid Approver Id");
+                return NotFound(_response);
+            }
+            if(approver.Role != "Approver")
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.NotFound;
+                _response.ErrorMessages.Add("You are not an approver");
+                return NotFound(_response);
+            }
+
+            request.ReturnDate = DateTime.Now.AddDays(3);
+            request.IsApproved = true;
+            request.ApprovedBy = approvalDto.ApproverId;
+            request.ApprovalDate = DateTime.Now;
+            request.Status = "Approved";
+
+            await _service.UpdateAsync(request);
+
+            var map = _mapper.Map<ApprovalResponseDto>(request);
+            _response.StatusCode=HttpStatusCode.OK;
+            _response.Result = map;
+
+            return Ok(_response);
+        }
     }
 }

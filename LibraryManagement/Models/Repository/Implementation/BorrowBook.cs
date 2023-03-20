@@ -15,9 +15,9 @@ namespace LibraryManagement.Models.Repository.Implementation
             _repo = repo;
         }
 
-        public void ApproveRequest(int requestId, int attendantId)
+        public void ApproveRequest(int borrowingId, int attendantId)
         {
-            var request = _context.Borrowing.Find(requestId);
+            var request = _context.Borrowing.Find(borrowingId);
             if (request == null)
             {
                 throw new ArgumentException("Invalid request ID.");
@@ -50,7 +50,6 @@ namespace LibraryManagement.Models.Repository.Implementation
             request.Status = "Rejected";
             request.ApprovalDate = DateTime.UtcNow;
             request.UserId = attendantId;
-            //request.RejectedReason = rejectedReason;
 
             _context.Update(request);
 

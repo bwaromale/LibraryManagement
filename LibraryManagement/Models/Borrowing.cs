@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LibraryManagement.Models
 {
@@ -6,7 +7,9 @@ namespace LibraryManagement.Models
     {
         [Key]
         public int BorrowingId { get; set; }
+        [ForeignKey("Users")]
         public int UserId { get; set; }
+        [ForeignKey("Books")]
         public int BookId { get; set; }
         public DateTime BorrowDate { get; set; }
         public DateTime ReturnDate { get; set; }

@@ -31,6 +31,22 @@ namespace LibraryManagement.Models.Repository.Implementation
         {
             return await dbSet.FirstOrDefaultAsync(propertyName);
         }
+        public async Task<T> GetSingleAsync (Expression<Func<T, bool>> predicate, string includeProperties = "")
+        {
+            IQueryable<T> query = dbSet;
+
+            if (!string.IsNullOrEmpty(includeProperties))
+            {
+                foreach (var includeProperty in includeProperties.Split
+                    (new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    query = query.Include(includeProperty);
+                }
+            }
+
+            return await query.Where(predicate).FirstOrDefaultAsync();
+        }
+
         public async Task RemoveAsync(Expression<Func<T, bool>> propertyName)
         {
             T entity = await dbSet.FirstOrDefaultAsync(propertyName);
