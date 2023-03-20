@@ -1,6 +1,6 @@
 ﻿namespace LibraryManagement.Models.Repository.Interfaces
 {
-    public interface IBorrowBook
+    public interface IBorrowBook: IRepository<Borrowing>
     {
             void ApproveRequest(int requestId, int attendantId);
             void RejectRequest(int requestId, int attendantId, string rejectedReason);

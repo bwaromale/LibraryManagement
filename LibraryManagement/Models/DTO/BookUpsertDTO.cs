@@ -13,7 +13,12 @@ namespace LibraryManagement.Models.DTO
         [Required]
         public string ForewardBy { get; set; }
         [Required]
+        public string ISBN { get; set; }
+        [Required]
         public double Price { get; set; }
+        [Required]
+        public int TotalCopies { get; set; }
+
         [Required]
         public bool Available { get; set; }
         

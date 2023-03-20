@@ -4,13 +4,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LibraryManagement.Models.Repository.Implementation
 {
-    public class BorrowBook : IBorrowBook
+    public class BorrowBook : Repository<Borrowing>,IBorrowBook
     {
         private readonly LibraryContext _context;
+        private readonly IRepository<Borrowing> _repo;
 
-        public BorrowBook(LibraryContext context)
+        public BorrowBook(LibraryContext context, IRepository<Borrowing> repo):base(context)
         {
             _context = context;
+            _repo = repo;
         }
 
         public void ApproveRequest(int requestId, int attendantId)

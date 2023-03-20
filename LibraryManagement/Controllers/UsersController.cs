@@ -62,7 +62,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { "Invalid input"};
                     return BadRequest(_response);
                 }
-                //var map = _mapper.Map<User>(registerDTO);
+                
                 var userExist =  _userRepo.GetAsync(u => u.UserName == registerDTO.UserName);
                 if(userExist != null)
                 {
