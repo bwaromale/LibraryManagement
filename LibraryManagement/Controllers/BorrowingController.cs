@@ -213,7 +213,6 @@ namespace LibraryManagement.Controllers
             return Ok(_response);
         }
         [HttpPut("revoke-borrowing")]
-        //public async Task<ActionResult<APIResponse>> RevokeBorrowing(int BorrowId)
         public async Task<ActionResult<APIResponse>> RevokeBorrowing(ApprovalDto approvalDto)
         {
             try
@@ -238,7 +237,7 @@ namespace LibraryManagement.Controllers
                 {
                     _response.IsSuccess = false;
                     _response.StatusCode = HttpStatusCode.BadRequest;
-                    _response.ErrorMessages.Add("You can only revoke approved requests");
+                    _response.ErrorMessages.Add("Only approved requests can be revoked");
                     return BadRequest(_response);
                 }
                 request.RevokedDate = DateTime.Now;

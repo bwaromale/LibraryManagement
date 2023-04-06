@@ -141,6 +141,53 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
+        [HttpPut("create-approver")]
+        public async Task<ActionResult<APIResponse>> CreateApprover([FromBody] int userId)
+        {
+            try
+            {
+                if(userId == 0)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid Input");
+                    return BadRequest(_response);
+
+                }
+
+                var userExist = await _userRepo.GetAsync(u => u.UserId == userId);
+                if(userExist == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("User not found");
+                    return NotFound(_response);
+                }
+
+                if(userExist.Role == "Approver")
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("User is already an approver");
+                    return BadRequest(_response);
+                }
+
+                userExist.Role = "Approver";
+                await _userRepo.UpdateAsync(userExist);
+
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = $"'{userExist.UserName}' successfuly created as approver";
+
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add(ex.Message.ToString());
+                return BadRequest(_response);
+            }
+        }
         [HttpPost("login")]
         public async Task<ActionResult<APIResponse>> Login([FromBody] LoginRequest loginRequest)
         {
@@ -227,7 +274,6 @@ namespace LibraryManagement.Controllers
                     return NotFound(_response);
                 }
 
-                //var checkToken = await _userRepo.GetAsync(c => c.PasswordResetToken == resetPassword.ResetToken && c.ResetTokenExpires < DateTime.Now);
                 var checkToken = await _userRepo.GetAsync(c => c.PasswordResetToken == resetPassword.ResetToken);
                 if (checkToken == null)
                 {
