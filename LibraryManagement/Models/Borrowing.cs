@@ -17,6 +17,9 @@ namespace LibraryManagement.Models
         public int ApprovedBy { get; set; }
         public DateTime ApprovalDate { get; set; }
         public string Status { get; set; }
+        public bool RevokeStatus { get; set; }
+        public int RevokedBy { get; set; }
+        public DateTime RevokedDate { get; set; }
 
         public virtual Book Book { get; set; }
         public virtual User User { get; set; }

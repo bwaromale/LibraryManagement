@@ -9,12 +9,16 @@ namespace LibraryManagement.Models.Repository.Implementation
         private readonly LibraryContext _context;
         private readonly IRepository<Borrowing> _repo;
 
+        
         public BorrowBook(LibraryContext context, IRepository<Borrowing> repo):base(context)
         {
             _context = context;
             _repo = repo;
         }
-
+        public async Task<Borrowing> GetBorrowAsync(int BorrowingId)
+        {
+            return await _context.Borrowing.FirstOrDefaultAsync(u => u.BorrowingId == BorrowingId);
+        } 
         public void ApproveRequest(int borrowingId, int attendantId)
         {
             var request = _context.Borrowing.Find(borrowingId);

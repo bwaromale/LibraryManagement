@@ -3,6 +3,7 @@ using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Asn1.Ocsp;
 using System.Net;
 
 namespace LibraryManagement.Controllers
@@ -15,14 +16,16 @@ namespace LibraryManagement.Controllers
         private readonly IBorrowBook _service;
         private readonly IUser _userServ;
         private readonly IRepository<Book> _bookServ;
+        private readonly IBorrowBook _borrow;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IMapper mapper)
+        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IBorrowBook borrowBook, IMapper mapper)
         {
             _service  = service;
             _userServ = user;
             _bookServ = bookServ;
+            _borrow = borrowBook;
             _mapper = mapper;
             this._response = new APIResponse();
         }
@@ -109,12 +112,15 @@ namespace LibraryManagement.Controllers
 
                 var requestExist = await _service.GetAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
                 
-                if(requestExist.Status == "Pending")
+                if(requestExist != null)
                 {
-                    _response.IsSuccess = false;
-                    _response.StatusCode = HttpStatusCode.BadRequest;
-                    _response.ErrorMessages.Add("You submitted a similar pending request awaiting approval");
-                    return BadRequest(_response);
+                    if (requestExist.Status == "Pending")
+                    {
+                        _response.IsSuccess = false;
+                        _response.StatusCode = HttpStatusCode.BadRequest;
+                        _response.ErrorMessages.Add("You submitted a similar pending request awaiting approval");
+                        return BadRequest(_response);
+                    }
                 }
                 
                 Borrowing borrowBook = new Borrowing()
@@ -205,6 +211,55 @@ namespace LibraryManagement.Controllers
             _response.Result = map;
 
             return Ok(_response);
+        }
+        [HttpPut("revoke-borrowing")]
+        //public async Task<ActionResult<APIResponse>> RevokeBorrowing(int BorrowId)
+        public async Task<ActionResult<APIResponse>> RevokeBorrowing(ApprovalDto approvalDto)
+        {
+            try
+            {
+                if (approvalDto == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid input");
+                    return BadRequest(_response);
+                }
+
+                var request = await _borrow.GetBorrowAsync(approvalDto.BorrowingId);
+                if (request == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Borrowing Request not Found");
+                    return NotFound(_response);
+                }
+                if(request.IsApproved == false)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("You can only revoke approved requests");
+                    return BadRequest(_response);
+                }
+                request.RevokedDate = DateTime.Now;
+                request.Status = "Revoked";
+                request.RevokeStatus = true;
+                request.RevokedBy = approvalDto.ApproverId;
+
+                await _service.UpdateAsync(request);
+
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = "Revoke Successful";
+
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add(ex.Message.ToString());
+                return BadRequest(_response);
+            }
         }
     }
 }

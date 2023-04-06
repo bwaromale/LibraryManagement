@@ -54,3 +54,7 @@ LibraryManagement/Data/*
 
 # ignore files and directories in Migrations folder
 LibraryManagement/Migrations/*
+
+
+LibraryManagement/appsettings.json
+LibraryManagement/appsettings.Development.jsom
