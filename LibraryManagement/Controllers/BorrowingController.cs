@@ -17,15 +17,17 @@ namespace LibraryManagement.Controllers
         private readonly IUser _userServ;
         private readonly IRepository<Book> _bookServ;
         private readonly IBorrowBook _borrow;
+        private readonly IEmail _emailServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IBorrowBook borrowBook, IMapper mapper)
+        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IBorrowBook borrowBook, IEmail emailServ, IMapper mapper)
         {
             _service  = service;
             _userServ = user;
             _bookServ = bookServ;
             _borrow = borrowBook;
+            _emailServ = emailServ;
             _mapper = mapper;
             this._response = new APIResponse();
         }
@@ -187,7 +189,7 @@ namespace LibraryManagement.Controllers
             {
                 _response.IsSuccess = false;
                 _response.StatusCode = HttpStatusCode.NotFound;
-                _response.ErrorMessages.Add("Invalid Approver Id");
+                _response.ErrorMessages.Add("Invalid approver id");
                 return NotFound(_response);
             }
             if(approver.Role != "Approver")
@@ -198,6 +200,23 @@ namespace LibraryManagement.Controllers
                 return NotFound(_response);
             }
 
+            var borrower = await _userServ.GetAsync(b => b.UserId == request.UserId);
+            if (borrower == null)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages.Add("Borrower details not found");
+                _response.StatusCode = HttpStatusCode.NotFound;
+                return NotFound(_response);
+            }
+
+            var book = await _bookServ.GetAsync(b => b.BookId == request.BookId);
+            if (book == null)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages.Add("Book details not found");
+                _response.StatusCode = HttpStatusCode.NotFound;
+                return NotFound(_response);
+            }
             request.ReturnDate = DateTime.Now.AddDays(3);
             request.IsApproved = true;
             request.ApprovedBy = approvalDto.ApproverId;
@@ -205,7 +224,14 @@ namespace LibraryManagement.Controllers
             request.Status = "Approved";
 
             await _service.UpdateAsync(request);
-
+            EmailDto emailDto = new EmailDto()
+            {
+                From = "SHAWNLIBRARY@GMAIL.COM",
+                To = borrower.Email,
+                Subject = "BOOK APPROVAL NOTIFICATION",
+                Body = $"Hello {borrower.FirstName}, your request to borrow {book.Title} by {book.Author} is approved. Kindly proceed to pick up. "
+            };
+            _emailServ.SendEmail(emailDto);
             var map = _mapper.Map<ApprovalResponseDto>(request);
             _response.StatusCode=HttpStatusCode.OK;
             _response.Result = map;
@@ -233,6 +259,24 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages.Add("Borrowing Request not Found");
                     return NotFound(_response);
                 }
+
+                var approver = await _userServ.GetAsync(a=>a.UserId == approvalDto.ApproverId);
+                if (approver == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Approver not found");
+                    return NotFound(_response);
+                }
+                
+                if (approver.Role != "Approver")
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.Unauthorized;
+                    _response.ErrorMessages.Add("You are not an approver");
+                    return Unauthorized(_response);
+                }
+
                 if(request.IsApproved == false)
                 {
                     _response.IsSuccess = false;
