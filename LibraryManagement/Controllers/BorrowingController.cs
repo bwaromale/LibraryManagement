@@ -121,7 +121,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages.Add($"'{bookExist.Title}' is not available at the moment. Try again later");
                     return BadRequest(_response);
                 }
-                var requestExist = await _borrowServ.GetAllBorrowingAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
+                var requestExist = await _borrowServ.GetAllBorrowingWithConditionAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
                 
                 if(requestExist != null)
                 {
@@ -132,11 +132,6 @@ namespace LibraryManagement.Controllers
                         _response.ErrorMessages.Add("You submitted a similar pending request awaiting approval");
                         return BadRequest(_response);
                     }
-                }
-                if (bookExist.BorrowedCopies < bookExist.TotalCopies)
-                {
-                    bookExist.BorrowedCopies++;
-                    await _bookServ.UpdateAsync(bookExist);
                 }
                 
                 Borrowing borrowBook = new Borrowing()
@@ -243,6 +238,12 @@ namespace LibraryManagement.Controllers
                 _response.ErrorMessages.Add($"'{book.Title}' is not available at the moment. Try again later");
                 return BadRequest(_response);
             }
+
+            if (book.BorrowedCopies < book.TotalCopies)
+            {
+                book.BorrowedCopies++;
+                await _bookServ.UpdateAsync(book);
+            }
             request.ReturnDate = DateTime.Now.AddDays(3);
             request.IsApproved = true;
             request.ApprovedBy = approvalDto.ApproverId;
@@ -329,6 +330,85 @@ namespace LibraryManagement.Controllers
                 _response.ErrorMessages.Add(ex.Message.ToString());
                 return BadRequest(_response);
             }
+        }
+        [HttpPut("check-in")]
+        public async Task<ActionResult<APIResponse>> BookCheckIn(int borrowingId) {
+            if(borrowingId <= 0)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add("Invalid input");
+                return BadRequest(_response);
+            }
+
+            var borrowing = await _borrowServ.GetAsync(b=>b.BorrowingId == borrowingId);
+            if(borrowing == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.NotFound;
+                _response.ErrorMessages.Add("Invalid borrowing ID");
+                return NotFound(_response);
+            }
+
+            if(borrowing.CheckOut == false)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add("Book has not being being Checked Out");
+                return BadRequest(_response);
+            }
+
+            if(borrowing.CheckIn == true)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode= HttpStatusCode.Forbidden;
+                _response.ErrorMessages.Add($"Book already checked in by {borrowing.CheckInDate}.");
+                return BadRequest(_response);
+            }
+            borrowing.CheckIn = true;
+            borrowing.CheckInDate = DateTime.Now;
+
+            await _borrowServ.UpdateAsync(borrowing);
+
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = $"Book Returned and Check In by {DateTime.Now}";
+            return Ok(_response);
+        }
+        [HttpPut("check-out")]
+        public async Task<ActionResult<APIResponse>> BookCheckOut(int borrowingId) {
+            if (borrowingId <= 0)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add("Invalid input");
+                return BadRequest(_response);
+            }
+
+            var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == borrowingId);
+            if (borrowing == null)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.NotFound;
+                _response.ErrorMessages.Add("Invalid borrowing ID");
+                return NotFound(_response);
+            }
+
+            if (borrowing.CheckOut == true)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add($"Book has already being Checked Out at {borrowing.CheckOutDate}");
+                return BadRequest(_response);
+            }
+
+            borrowing.CheckOut = true;
+            borrowing.CheckOutDate = DateTime.Now;
+
+            await _borrowServ.UpdateAsync(borrowing);
+
+            _response.StatusCode = HttpStatusCode.OK;
+            _response.Result = $"Book Collected and Checked Out by {DateTime.Now}";
+            return Ok(_response);
         }
     }
 }

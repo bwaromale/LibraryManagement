@@ -90,7 +90,7 @@ namespace LibraryManagement.Models.Repository.Implementation
             _context.SaveChanges();
         }
 
-        public async Task<IEnumerable<Borrowing>> GetAllBorrowingAsync(Func<Borrowing, bool> predicate = null)
+        public async Task<IEnumerable<Borrowing>> GetAllBorrowingWithConditionAsync(Func<Borrowing, bool> predicate = null)
         {
             IEnumerable<Borrowing> borrowings = dbSet;
             if(predicate != null)
