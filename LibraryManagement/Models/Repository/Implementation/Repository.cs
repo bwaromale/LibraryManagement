@@ -70,6 +70,9 @@ namespace LibraryManagement.Models.Repository.Implementation
             await _db.SaveChangesAsync();
         }
 
-
+        public Task RemoveObjAsync(T entity)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

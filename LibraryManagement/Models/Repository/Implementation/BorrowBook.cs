@@ -90,5 +90,14 @@ namespace LibraryManagement.Models.Repository.Implementation
             _context.SaveChanges();
         }
 
+        public async Task<IEnumerable<Borrowing>> GetAllBorrowingAsync(Func<Borrowing, bool> predicate = null)
+        {
+            IEnumerable<Borrowing> borrowings = dbSet;
+            if(predicate != null)
+            {
+                borrowings = borrowings.Where(predicate);
+            }
+            return borrowings;
+        }
     }
 }

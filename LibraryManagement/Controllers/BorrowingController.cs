@@ -2,6 +2,7 @@
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System.Net;
@@ -13,32 +14,31 @@ namespace LibraryManagement.Controllers
     public class BorrowingController : ControllerBase
     {
         
-        private readonly IBorrowBook _service;
+        private readonly IBorrowBook _borrowServ;
         private readonly IUser _userServ;
         private readonly IRepository<Book> _bookServ;
-        private readonly IBorrowBook _borrow;
         private readonly IEmail _emailServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public BorrowingController(IBorrowBook service, IUser user, IRepository<Book> bookServ, IBorrowBook borrowBook, IEmail emailServ, IMapper mapper)
+        public BorrowingController(IBorrowBook borrowServ, IUser user, IRepository<Book> bookServ, IEmail emailServ, IMapper mapper)
         {
-            _service  = service;
+            _borrowServ  = borrowServ;
             _userServ = user;
             _bookServ = bookServ;
-            _borrow = borrowBook;
             _emailServ = emailServ;
             _mapper = mapper;
             this._response = new APIResponse();
         }
 
         [HttpGet]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<APIResponse>> GetBorrowings()
         {
             try 
             {
                 
-                var borrowed = await _service.GetAllAsync();
+                var borrowed = await _borrowServ.GetAllAsync();
                 _response.StatusCode = HttpStatusCode.OK;
                 _response.Result = borrowed;
                 return Ok(_response);
@@ -59,7 +59,7 @@ namespace LibraryManagement.Controllers
             try
             {
                 
-                var borrowing = await _service.GetAsync(b => b.BorrowingId == id);
+                var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == id);
                 if (borrowing == null)
                 {
                     _response.IsSuccess = false;
@@ -83,6 +83,7 @@ namespace LibraryManagement.Controllers
         }
         
        [HttpPost("borrow-book")]
+        [Authorize(Roles ="User")]
         public async Task<ActionResult<APIResponse>> BorrowRequest(BorrowingDto  borrowingDto)
         {
             try
@@ -104,6 +105,7 @@ namespace LibraryManagement.Controllers
                 }
 
                 var bookExist = await _bookServ.GetAsync(b=>b.BookId == borrowingDto.BookId);
+                
                 if (bookExist == null)
                 {
                     _response.IsSuccess = false;
@@ -112,17 +114,29 @@ namespace LibraryManagement.Controllers
                     return NotFound(_response);
                 }
 
-                var requestExist = await _service.GetAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
+                if (bookExist.TotalCopies == 0 || bookExist.Available == false || bookExist.BorrowedCopies >= bookExist.TotalCopies)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add($"'{bookExist.Title}' is not available at the moment. Try again later");
+                    return BadRequest(_response);
+                }
+                var requestExist = await _borrowServ.GetAllBorrowingAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
                 
                 if(requestExist != null)
                 {
-                    if (requestExist.Status == "Pending")
+                    if (requestExist.Any(r => r.Status == "Pending"))
                     {
                         _response.IsSuccess = false;
                         _response.StatusCode = HttpStatusCode.BadRequest;
                         _response.ErrorMessages.Add("You submitted a similar pending request awaiting approval");
                         return BadRequest(_response);
                     }
+                }
+                if (bookExist.BorrowedCopies < bookExist.TotalCopies)
+                {
+                    bookExist.BorrowedCopies++;
+                    await _bookServ.UpdateAsync(bookExist);
                 }
                 
                 Borrowing borrowBook = new Borrowing()
@@ -133,7 +147,9 @@ namespace LibraryManagement.Controllers
                     Status = "Pending"
                 };
 
-                await _service.CreateAsync(borrowBook);
+                 
+                await _borrowServ.CreateAsync(borrowBook);
+                
 
                 _response.StatusCode = HttpStatusCode.OK;
                 _response.Result = "Borrow Request Sent. Approval is underway";
@@ -151,21 +167,23 @@ namespace LibraryManagement.Controllers
         
         // DELETE: api/Borrowing/5
         [HttpDelete("{id}")]
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> DeleteBorrowing(int id)
         {
-            var borrowing = await _service.GetAsync(b => b.BorrowingId == id);
+            var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == id);
             if (borrowing == null)
             {
                 return NotFound();
             }
 
-           //var deleteBorrowing = await _service.RemoveAsync(borrowing);
+            await _borrowServ.RemoveAsync(d=>d.BookId == id);
             
 
             return NoContent();
         }
 
         [HttpPut("approve-borrowing")]
+        [Authorize(Roles ="Approver")]
         public async Task<ActionResult<APIResponse>> AttendantApproveBorrowing(ApprovalDto approvalDto)
         {
             if(approvalDto == null)
@@ -176,7 +194,7 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
 
-            var request = await _service.GetAsync(r=>r.BorrowingId ==approvalDto.BorrowingId);
+            var request = await _borrowServ.GetAsync(r=>r.BorrowingId ==approvalDto.BorrowingId);
             if (request == null)
             {
                 _response.IsSuccess = false;
@@ -217,13 +235,21 @@ namespace LibraryManagement.Controllers
                 _response.StatusCode = HttpStatusCode.NotFound;
                 return NotFound(_response);
             }
+
+            if(book.TotalCopies == 0 || book.Available == false)
+            {
+                _response.IsSuccess = false;
+                _response.StatusCode = HttpStatusCode.BadRequest;
+                _response.ErrorMessages.Add($"'{book.Title}' is not available at the moment. Try again later");
+                return BadRequest(_response);
+            }
             request.ReturnDate = DateTime.Now.AddDays(3);
             request.IsApproved = true;
             request.ApprovedBy = approvalDto.ApproverId;
             request.ApprovalDate = DateTime.Now;
             request.Status = "Approved";
 
-            await _service.UpdateAsync(request);
+            await _borrowServ.UpdateAsync(request);
             EmailDto emailDto = new EmailDto()
             {
                 From = "SHAWNLIBRARY@GMAIL.COM",
@@ -251,7 +277,7 @@ namespace LibraryManagement.Controllers
                     return BadRequest(_response);
                 }
 
-                var request = await _borrow.GetBorrowAsync(approvalDto.BorrowingId);
+                var request = await _borrowServ.GetBorrowAsync(approvalDto.BorrowingId);
                 if (request == null)
                 {
                     _response.IsSuccess = false;
@@ -289,7 +315,7 @@ namespace LibraryManagement.Controllers
                 request.RevokeStatus = true;
                 request.RevokedBy = approvalDto.ApproverId;
 
-                await _service.UpdateAsync(request);
+                await _borrowServ.UpdateAsync(request);
 
                 _response.StatusCode = HttpStatusCode.OK;
                 _response.Result = "Revoke Successful";
