@@ -99,5 +99,10 @@ namespace LibraryManagement.Models.Repository.Implementation
             }
             return borrowings;
         }
+
+        public Task<IEnumerable<Borrowing>> GetUserBorrowings(Func<Borrowing, bool> predicate = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

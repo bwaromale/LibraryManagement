@@ -32,7 +32,7 @@ namespace LibraryManagement.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles ="Admin")]
+        [Authorize(Roles ="Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetBorrowings()
         {
             try 
@@ -81,8 +81,34 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
+        [HttpGet("{userId}/borrowings")]
+        public async Task<ActionResult<APIResponse>> GetBorrowingsAttachedToUser(int userId)
+        {
+            try
+            {
+                if(userId <= 0)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid Input");
+                    return BadRequest(_response);
+                }
+
+                IEnumerable<Borrowing> borrowings = await _borrowServ.GetAllBorrowingWithConditionAsync(u => u.UserId == userId);
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = borrowings;
+                return Ok(_response);
+            }
+            catch(Exception ex)
+            {
+                _response.IsSuccess=false;
+                _response.StatusCode = HttpStatusCode.BadGateway;
+                _response.ErrorMessages.Add(ex.ToString());
+                return BadRequest(_response);
+            }
+        }
         
-       [HttpPost("borrow-book")]
+        [HttpPost("borrow-book")]
         [Authorize(Roles ="User")]
         public async Task<ActionResult<APIResponse>> BorrowRequest(BorrowingDto  borrowingDto)
         {
@@ -266,6 +292,7 @@ namespace LibraryManagement.Controllers
             return Ok(_response);
         }
         [HttpPut("revoke-borrowing")]
+        [Authorize(Roles = "Approver")]
         public async Task<ActionResult<APIResponse>> RevokeBorrowing(ApprovalDto approvalDto)
         {
             try
@@ -332,83 +359,106 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPut("check-in")]
-        public async Task<ActionResult<APIResponse>> BookCheckIn(int borrowingId) {
-            if(borrowingId <= 0)
+        [Authorize(Roles = "Admin, Approver")]
+        public async Task<ActionResult<APIResponse>> BookCheckIn(int borrowingId) 
+        {
+            try
+            {
+                if (borrowingId <= 0)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid input");
+                    return BadRequest(_response);
+                }
+
+                var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == borrowingId);
+                if (borrowing == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Invalid borrowing ID");
+                    return NotFound(_response);
+                }
+
+                if (borrowing.CheckOut == false)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Book has not being being Checked Out");
+                    return BadRequest(_response);
+                }
+
+                if (borrowing.CheckIn == true)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.Forbidden;
+                    _response.ErrorMessages.Add($"Book already checked in by {borrowing.CheckInDate}.");
+                    return BadRequest(_response);
+                }
+                borrowing.CheckIn = true;
+                borrowing.CheckInDate = DateTime.Now;
+
+                await _borrowServ.UpdateAsync(borrowing);
+
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = $"Book Returned and Check In by {DateTime.Now}";
+                return Ok(_response);
+            }
+            catch(Exception ex)
             {
                 _response.IsSuccess = false;
                 _response.StatusCode = HttpStatusCode.BadRequest;
-                _response.ErrorMessages.Add("Invalid input");
+                _response.ErrorMessages.Add(ex.Message.ToString());
                 return BadRequest(_response);
             }
-
-            var borrowing = await _borrowServ.GetAsync(b=>b.BorrowingId == borrowingId);
-            if(borrowing == null)
-            {
-                _response.IsSuccess = false;
-                _response.StatusCode = HttpStatusCode.NotFound;
-                _response.ErrorMessages.Add("Invalid borrowing ID");
-                return NotFound(_response);
-            }
-
-            if(borrowing.CheckOut == false)
-            {
-                _response.IsSuccess = false;
-                _response.StatusCode = HttpStatusCode.BadRequest;
-                _response.ErrorMessages.Add("Book has not being being Checked Out");
-                return BadRequest(_response);
-            }
-
-            if(borrowing.CheckIn == true)
-            {
-                _response.IsSuccess = false;
-                _response.StatusCode= HttpStatusCode.Forbidden;
-                _response.ErrorMessages.Add($"Book already checked in by {borrowing.CheckInDate}.");
-                return BadRequest(_response);
-            }
-            borrowing.CheckIn = true;
-            borrowing.CheckInDate = DateTime.Now;
-
-            await _borrowServ.UpdateAsync(borrowing);
-
-            _response.StatusCode = HttpStatusCode.OK;
-            _response.Result = $"Book Returned and Check In by {DateTime.Now}";
-            return Ok(_response);
         }
         [HttpPut("check-out")]
-        public async Task<ActionResult<APIResponse>> BookCheckOut(int borrowingId) {
-            if (borrowingId <= 0)
+        [Authorize(Roles = "Admin, Approver")]
+        public async Task<ActionResult<APIResponse>> BookCheckOut(int borrowingId)
+        {
+            try {
+                if (borrowingId <= 0)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add("Invalid input");
+                    return BadRequest(_response);
+                }
+
+                var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == borrowingId);
+                if (borrowing == null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.NotFound;
+                    _response.ErrorMessages.Add("Invalid borrowing ID");
+                    return NotFound(_response);
+                }
+
+                if (borrowing.CheckOut == true)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    _response.ErrorMessages.Add($"Book has already being Checked Out at {borrowing.CheckOutDate}");
+                    return BadRequest(_response);
+                }
+
+                borrowing.CheckOut = true;
+                borrowing.CheckOutDate = DateTime.Now;
+
+                await _borrowServ.UpdateAsync(borrowing);
+
+                _response.StatusCode = HttpStatusCode.OK;
+                _response.Result = $"Book Collected and Checked Out by {DateTime.Now}";
+                return Ok(_response);
+            }
+            catch (Exception ex)
             {
                 _response.IsSuccess = false;
                 _response.StatusCode = HttpStatusCode.BadRequest;
-                _response.ErrorMessages.Add("Invalid input");
+                _response.ErrorMessages.Add(ex.Message.ToString());
                 return BadRequest(_response);
             }
-
-            var borrowing = await _borrowServ.GetAsync(b => b.BorrowingId == borrowingId);
-            if (borrowing == null)
-            {
-                _response.IsSuccess = false;
-                _response.StatusCode = HttpStatusCode.NotFound;
-                _response.ErrorMessages.Add("Invalid borrowing ID");
-                return NotFound(_response);
-            }
-
-            if (borrowing.CheckOut == true)
-            {
-                _response.IsSuccess = false;
-                _response.StatusCode = HttpStatusCode.BadRequest;
-                _response.ErrorMessages.Add($"Book has already being Checked Out at {borrowing.CheckOutDate}");
-                return BadRequest(_response);
-            }
-
-            borrowing.CheckOut = true;
-            borrowing.CheckOutDate = DateTime.Now;
-
-            await _borrowServ.UpdateAsync(borrowing);
-
-            _response.StatusCode = HttpStatusCode.OK;
-            _response.Result = $"Book Collected and Checked Out by {DateTime.Now}";
-            return Ok(_response);
         }
     }
 }
