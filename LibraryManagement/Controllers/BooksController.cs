@@ -3,6 +3,7 @@ using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,23 +16,35 @@ namespace LibraryManagement.Controllers
     [Produces("application/json")]
     public class BooksController : ControllerBase
     {
-        private readonly IRepository<Book> _db;
+        private readonly IRepository<Book> _bookServ;
+        private readonly IAuthorRepository _authorServ;
         private readonly IMapper _mapper;
         protected readonly APIResponse _response;
-        public BooksController(IRepository<Book> db, IMapper mapper)
+        public BooksController(IRepository<Book> bookServ,IAuthorRepository authorServ, IMapper mapper)
         {
-            _db = db;
+            _bookServ = bookServ;
+            _authorServ = authorServ;
             _mapper = mapper;
             _response = new APIResponse();
         }
         [HttpGet]
+        [Authorize(Roles ="User, Approver, Admin")]
         public async Task<ActionResult<APIResponse>> GetBooks()
         {
             try
             {
-                var books = await _db.GetAllAsync();
-                _response.Result = _mapper.Map<IEnumerable<BookDTO>>(books);
+                var books = await _bookServ.GetAllAsync();
+                var booksWithAuthors = new List<BookDTO>();
+                foreach(var book in books)
+                {
+                    var author = await _authorServ.GetAsync(a=> a.AuthorId == book.AuthorId);
+                    var bookWithAuthor = _mapper.Map<BookDTO>(book);
+                    bookWithAuthor.Author = _mapper.Map<AuthorDTO>(author);
+                    booksWithAuthors.Add(bookWithAuthor);
+                }
+                _response.Result = booksWithAuthors;
                 _response.StatusCode = HttpStatusCode.OK;
+
                 return Ok(_response);
             }
             catch(Exception ex)
@@ -43,19 +56,26 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpGet("{bookName}")]
+        [Authorize(Roles = "User, Approver, Admin")]
         public async Task<ActionResult<APIResponse>> GetBook(string bookName)
         {
             try
             {
-                var book = await _db.GetAsync(b => b.Title == bookName);
+                var book = await _bookServ.GetAsync(b => b.Title == bookName);
                 if (book == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
                     _response.ErrorMessages = new List<string>() { "Not Found" };
                     return NotFound(_response);
                 }
-                _response.Result = _mapper.Map<BookUpsertDTO>(book);
+                var author = await _authorServ.GetAsync(a=>a.AuthorId == book.AuthorId);
+
+                var mapBook  = _mapper.Map<BookDTO>(book);
+                mapBook.Author = _mapper.Map<AuthorDTO>(author);
+                
+                _response.Result = mapBook;
                 _response.StatusCode = HttpStatusCode.OK;
+                
                 return Ok(_response);
             }
             catch (Exception ex)
@@ -67,12 +87,13 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<APIResponse>> BookCreate([FromBody] BookUpsertDTO bookCreate)
         {
             try
             {
                 var book = _mapper.Map<Book>(bookCreate);
-                var bookExist = await _db.CheckDuplicateAtCreation(check => check.Title==bookCreate.Title);
+                var bookExist = await _bookServ.CheckDuplicateAtCreation(check => check.Title==bookCreate.Title);
                 if(bookExist)
                 {
                     _response.IsSuccess = false;
@@ -80,7 +101,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() {$"A book with title '{book.Title}' already exist." };
                     return BadRequest(_response);
                 }
-                await _db.CreateAsync(book);
+                await _bookServ.CreateAsync(book);
                 _response.StatusCode = HttpStatusCode.Created;
                 _response.Result = _mapper.Map<BookUpsertDTO>(book);
                 return CreatedAtAction(nameof(GetBooks), new {b = bookCreate.Title}, _response);
@@ -94,6 +115,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpDelete("{bookName}")]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<APIResponse>> DeleteBook(string bookName)
         {
             try
@@ -105,7 +127,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { $"{bookName} is an invalid input" };
                     return BadRequest(_response);
                 }
-                var book = await _db.GetAsync(b => b.Title == bookName);
+                var book = await _bookServ.GetAsync(b => b.Title == bookName);
                 if(book == null)
                 {
                     _response.IsSuccess = false;
@@ -113,7 +135,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { $"Book with name '{bookName}' not found" };
                     return NotFound(_response);
                 }
-                await _db.RemoveAsync(b =>b.Title == bookName);
+                await _bookServ.RemoveAsync(b =>b.Title == bookName);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
             }
@@ -126,6 +148,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPut("{bookName}")]
+        [Authorize(Roles ="Admin")]
         public async Task<ActionResult<APIResponse>> UpdateBook(string bookName, [FromBody] BookUpsertDTO bookCreateDTO)
         {
             try
@@ -137,7 +160,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { "Invalid input" };
                     return BadRequest(_response);
                 }
-                var book = await _db.GetAsync(b=>b.Title == bookName);
+                var book = await _bookServ.GetAsync(b=>b.Title == bookName);
                 if (book == null)
                 {
                     _response.IsSuccess = false;
@@ -153,7 +176,7 @@ namespace LibraryManagement.Controllers
                 book.Available = bookCreateDTO.Available;
                 book.AuthorId = bookCreateDTO.AuthorId;
 
-                await _db.UpdateAsync(book);
+                await _bookServ.UpdateAsync(book);
                 
                 _response.StatusCode=HttpStatusCode.OK;
                 _response.Result = bookCreateDTO;

@@ -16,5 +16,6 @@ namespace LibraryManagement.Models.DTO
         public double Price { get; set; }
         [Required]
         public bool Available { get; set; }
+        public AuthorDTO Author { get; set; }
     }
 }

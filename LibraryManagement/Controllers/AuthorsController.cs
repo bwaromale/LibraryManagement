@@ -14,13 +14,13 @@ namespace LibraryManagement.Controllers
     [Produces("application/json")]
     public class AuthorsController : ControllerBase
     {
-        private readonly IAuthorRepository _db;
+        private readonly IAuthorRepository _authorServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public AuthorsController(IAuthorRepository db, IMapper mapper)
+        public AuthorsController(IAuthorRepository authorServ, IMapper mapper)
         {
-            _db = db;
+            _authorServ = authorServ;
             _mapper = mapper;
             this._response = new();
         }
@@ -29,7 +29,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                IEnumerable<Author> authors = await _db.GetAllAsync();
+                IEnumerable<Author> authors = await _authorServ.GetAllAsync();
                 _response.Result = _mapper.Map<IEnumerable<AuthorDTO>>(authors);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
@@ -47,7 +47,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var author = await _db.GetAsync(a => a.AuthorName == authorName);
+                var author = await _authorServ.GetAsync(a => a.AuthorName == authorName);
                 if(author == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
@@ -72,7 +72,7 @@ namespace LibraryManagement.Controllers
         {
             try
             {
-                var books = await _db.GetBooksAttachedtoAuthor(id);
+                var books = await _authorServ.GetBooksAttachedtoAuthor(id);
                 if (books == null || !books.Any())
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
@@ -97,7 +97,7 @@ namespace LibraryManagement.Controllers
             try
             {
                 var map = _mapper.Map<Author>(authorCreate);
-                await _db.CreateAsync(map);
+                await _authorServ.CreateAsync(map);
                 _response.Result = _mapper.Map<AuthorDTO>(map);
                 _response.StatusCode = HttpStatusCode.Created;
                 return CreatedAtAction(nameof(GetAuthors), new { author = authorCreate.AuthorName }, _response);
@@ -122,7 +122,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { "Invalid input"};
                     return BadRequest(_response);
                 }
-                var author = await _db.GetAsync(a => a.AuthorName == authorName);
+                var author = await _authorServ.GetAsync(a => a.AuthorName == authorName);
                 if(author == null)
                 {
                     _response.IsSuccess = false;
@@ -130,7 +130,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { $"Author with name '{authorName}' not found" };
                     return NotFound(_response);
                 }
-                await _db.RemoveAsync(a => a.AuthorName == authorName);
+                await _authorServ.RemoveAsync(a => a.AuthorName == authorName);
                 _response.StatusCode=HttpStatusCode.OK;
                 return Ok(_response);
 
@@ -157,7 +157,7 @@ namespace LibraryManagement.Controllers
                     return BadRequest(_response);
                 }
 
-                var author = await _db.GetAsync(a => a.AuthorName == authorName);
+                var author = await _authorServ.GetAsync(a => a.AuthorName == authorName);
                 
                 if(author == null)
                 {
@@ -171,7 +171,7 @@ namespace LibraryManagement.Controllers
                 author.PublisherId = authorCreateDTO.PublisherId;
                 author.UpdatedTime = DateTime.Now;
 
-                await _db.UpdateAsync(author);
+                await _authorServ.UpdateAsync(author);
                 _response.StatusCode = HttpStatusCode.OK;
                 _response.Result = authorCreateDTO;
                 return Ok(_response);
