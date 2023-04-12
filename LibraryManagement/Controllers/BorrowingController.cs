@@ -16,12 +16,12 @@ namespace LibraryManagement.Controllers
         
         private readonly IBorrowBook _borrowServ;
         private readonly IUser _userServ;
-        private readonly IRepository<Book> _bookServ;
+        private readonly IBooksRepository _bookServ;
         private readonly IEmail _emailServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public BorrowingController(IBorrowBook borrowServ, IUser user, IRepository<Book> bookServ, IEmail emailServ, IMapper mapper)
+        public BorrowingController(IBorrowBook borrowServ, IUser user, IBooksRepository bookServ, IEmail emailServ, IMapper mapper)
         {
             _borrowServ  = borrowServ;
             _userServ = user;
@@ -83,6 +83,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpGet("{userId}/borrowings")]
+        [Authorize(Roles = "Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetBorrowingsAttachedToUser(int userId)
         {
             try
@@ -148,6 +149,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages.Add($"'{bookExist.Title}' is not available at the moment. Try again later");
                     return BadRequest(_response);
                 }
+
                 var requestExist = await _borrowServ.GetAllBorrowingWithConditionAsync(r=>r.UserId == borrowingDto.UserId && r.BookId == borrowingDto.BookId);
                 
                 if(requestExist != null)
@@ -160,7 +162,15 @@ namespace LibraryManagement.Controllers
                         return BadRequest(_response);
                     }
                 }
-                
+                //check if the user has a book he has not returned on due date
+                var pendingCheckIn = await _borrowServ.GetAllBorrowingWithConditionAsync(p=>p.UserId == borrowingDto.UserId && p.ReturnDate < DateTime.Now && p.Status == "Approved" && p.CheckIn == false );
+                if(pendingCheckIn != null)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.Unauthorized;
+                    _response.ErrorMessages.Add("Pending Checkin. Borrower must clear outstanding checkin");
+                    return Unauthorized(_response);
+                }
                 Borrowing borrowBook = new Borrowing()
                 {
                     UserId = borrowingDto.UserId,
