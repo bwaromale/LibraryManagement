@@ -31,7 +31,7 @@ namespace LibraryManagement.Controllers
             
         }
         [HttpGet]
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> GetUsers()
         {
             try
@@ -142,6 +142,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPut("create-approver")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> CreateApprover([FromBody] int userId)
         {
             try

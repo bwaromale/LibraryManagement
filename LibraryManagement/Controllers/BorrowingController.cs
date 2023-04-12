@@ -54,6 +54,7 @@ namespace LibraryManagement.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, Approver")]
         public async Task<ActionResult<Borrowing>> GetBorrowing(int id)
         {
             try
@@ -205,7 +206,7 @@ namespace LibraryManagement.Controllers
 
         [HttpPut("approve-borrowing")]
         [Authorize(Roles ="Approver")]
-        public async Task<ActionResult<APIResponse>> AttendantApproveBorrowing(ApprovalDto approvalDto)
+        public async Task<ActionResult<APIResponse>> ApproveBorrowing(ApprovalDto approvalDto)
         {
             if(approvalDto == null)
             {

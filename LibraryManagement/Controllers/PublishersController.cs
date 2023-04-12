@@ -16,23 +16,24 @@ namespace LibraryManagement.Controllers
     [Authorize(Roles ="Admin")]
     public class PublishersController : ControllerBase
     {
-        private readonly IPublisherRepository _db;
+        private readonly IPublisherRepository _publisherServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public PublishersController(IPublisherRepository db, IMapper mapper)
+        public PublishersController(IPublisherRepository publisherServ, IMapper mapper)
         {
-            _db = db;
+            _publisherServ = publisherServ;
             _mapper = mapper;
             this._response = new();
         }
 
         [HttpGet]
+        [Authorize(Roles ="Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetPublishers()
         {
             try
             {
-                IEnumerable<Publisher> publishers = await _db.GetAllAsync();
+                IEnumerable<Publisher> publishers = await _publisherServ.GetAllAsync();
                 if (!publishers.Any())
                 {
                     _response.IsSuccess = false;
@@ -52,11 +53,12 @@ namespace LibraryManagement.Controllers
             } 
         }
         [HttpGet("{publisherName}")]
+        [Authorize(Roles = "Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetPublisher(string publisherName)
         {
             try
             {
-                var publisher = await _db.GetAsync(p=>p.PublisherName ==publisherName);
+                var publisher = await _publisherServ.GetAsync(p=>p.PublisherName ==publisherName);
                 if(publisher == null)
                 {
                     _response.IsSuccess = false;
@@ -77,11 +79,12 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpGet("{id}/authors")]
+        [Authorize(Roles = "Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetAuthorsAttachedtoPublisher(int id)
         {
             try
             {
-                var authors = await _db.GetAuthorsAttachedtoPublisher(id);
+                var authors = await _publisherServ.GetAuthorsAttachedtoPublisher(id);
                 if (!authors.Any())
                 {
                     _response.ErrorMessages = new List<string>() { "Not Found" };
@@ -100,12 +103,13 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> PostPublisher([FromBody] PublisherUpsertDTO publisherDto)
         {
             try
             {
                 var publisher = _mapper.Map<Publisher>(publisherDto);
-                var publisherExist = await _db.CheckDuplicateAtCreation(p => p.PublisherName == publisherDto.PublisherName);
+                var publisherExist = await _publisherServ.CheckDuplicateAtCreation(p => p.PublisherName == publisherDto.PublisherName);
                 if (publisherExist)
                 {
                     _response.StatusCode=HttpStatusCode.BadRequest;
@@ -113,7 +117,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { $"A publisher with name '{publisher.PublisherName}' already exist." };
                     return BadRequest(_response);
                 }
-                await _db.CreateAsync(publisher);
+                await _publisherServ.CreateAsync(publisher);
 
                 _response.Result = _mapper.Map<PublisherUpsertDTO>(publisher);
                 _response.StatusCode = HttpStatusCode.Created;
@@ -130,6 +134,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpDelete("{publisherName}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> DeletePublisher(string publisherName)
         {
             try
@@ -142,7 +147,7 @@ namespace LibraryManagement.Controllers
                     _response.IsSuccess = false;
                     return BadRequest(_response);
                 }
-                var publisher = await _db.GetAsync(p=>p.PublisherName == publisherName);
+                var publisher = await _publisherServ.GetAsync(p=>p.PublisherName == publisherName);
                 if(publisher == null)
                 {
                     _response.IsSuccess = false;
@@ -150,7 +155,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() {$"'{publisherName}' not found" };
                     return BadRequest(_response);
                 }
-                await _db.RemoveAsync(p => p.PublisherName ==publisherName);
+                await _publisherServ.RemoveAsync(p => p.PublisherName ==publisherName);
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
 
@@ -164,6 +169,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPut("{publisherName}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> UpdatePublisher(string publisherName, [FromBody] PublisherUpsertDTO publisherDTO)
         {
             try
@@ -175,7 +181,7 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages = new List<string>() { "Invalid input"};
                     return BadRequest(_response);
                 }
-                var publisher = await _db.GetAsync(p => p.PublisherName == publisherName);
+                var publisher = await _publisherServ.GetAsync(p => p.PublisherName == publisherName);
                 if (publisher == null)
                 {
                     _response.IsSuccess = false;
@@ -187,7 +193,7 @@ namespace LibraryManagement.Controllers
                 publisher.PublisherName = publisherDTO.PublisherName;
                 publisher.Address = publisherDTO.Address;
                 publisher.UpdatedDate = DateTime.Now;
-                await _db.UpdateAsync(publisher);
+                await _publisherServ.UpdateAsync(publisher);
 
                 _response.StatusCode=HttpStatusCode.OK;
                 _response.Result = publisherDTO;
