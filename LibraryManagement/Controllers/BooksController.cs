@@ -1,12 +1,9 @@
 ﻿using AutoMapper;
-using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Net;
 
 namespace LibraryManagement.Controllers

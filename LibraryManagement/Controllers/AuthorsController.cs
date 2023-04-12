@@ -3,6 +3,7 @@ using LibraryManagement.Data;
 using LibraryManagement.Models;
 using LibraryManagement.Models.DTO;
 using LibraryManagement.Models.Repository.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -28,6 +29,7 @@ namespace LibraryManagement.Controllers
             this._response = new();
         }
         [HttpGet]
+        [Authorize(Roles ="User, Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetAuthors()
         {
             try
@@ -46,6 +48,7 @@ namespace LibraryManagement.Controllers
             
         }
         [HttpGet("{authorName}")]
+        [Authorize(Roles = "User, Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetAuthor(string authorName)
         {
             try
@@ -71,6 +74,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpGet("{authorId}/books")]
+        [Authorize(Roles = "User, Admin, Approver")]
         public async Task<ActionResult<APIResponse>> GetBooksAttachedtoAuthor(int authorId)
         {
             try
@@ -114,6 +118,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> CreateAuthor([FromBody] AuthorUpsertDTO authorCreate)
         {
             try
@@ -133,6 +138,7 @@ namespace LibraryManagement.Controllers
             }
         }
         [HttpDelete("{authorName}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> DeleteAuthor(string authorName)
         {
             try
@@ -167,6 +173,7 @@ namespace LibraryManagement.Controllers
 
         }
         [HttpPut("{authorName}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<APIResponse>> UpdateAuthor(string authorName, [FromBody] AuthorUpsertDTO authorCreateDTO)
         {
             try
