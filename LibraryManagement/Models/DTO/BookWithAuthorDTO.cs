@@ -2,16 +2,20 @@
 
 namespace LibraryManagement.Models.DTO
 {
-    public class BookDTO
+    public class BookWithAuthorDTO
     {
+        [Required]
         public string Title { get; set; }
+        [Required]
         public string CoverType { get; set; }
+        [Required]
         public string NoOfPages { get; set; }
+        [Required]
         public string ForewardBy { get; set; }
-        public string ISBN { get; set; }
+        [Required]
         public double Price { get; set; }
+        [Required]
         public bool Available { get; set; }
-        public int TotalCopies { get; set; }
-        public int BorrowedCopies { get; set; }
+        public AuthorDTO Author { get; set; }
     }
 }

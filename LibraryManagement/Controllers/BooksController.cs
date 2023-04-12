@@ -16,11 +16,11 @@ namespace LibraryManagement.Controllers
     [Produces("application/json")]
     public class BooksController : ControllerBase
     {
-        private readonly IRepository<Book> _bookServ;
+        private readonly IBooksRepository _bookServ;
         private readonly IAuthorRepository _authorServ;
         private readonly IMapper _mapper;
         protected readonly APIResponse _response;
-        public BooksController(IRepository<Book> bookServ,IAuthorRepository authorServ, IMapper mapper)
+        public BooksController(IBooksRepository bookServ,IAuthorRepository authorServ, IMapper mapper)
         {
             _bookServ = bookServ;
             _authorServ = authorServ;
@@ -34,11 +34,11 @@ namespace LibraryManagement.Controllers
             try
             {
                 var books = await _bookServ.GetAllAsync();
-                var booksWithAuthors = new List<BookDTO>();
+                var booksWithAuthors = new List<BookWithAuthorDTO>();
                 foreach(var book in books)
                 {
                     var author = await _authorServ.GetAsync(a=> a.AuthorId == book.AuthorId);
-                    var bookWithAuthor = _mapper.Map<BookDTO>(book);
+                    var bookWithAuthor = _mapper.Map<BookWithAuthorDTO>(book);
                     bookWithAuthor.Author = _mapper.Map<AuthorDTO>(author);
                     booksWithAuthors.Add(bookWithAuthor);
                 }
@@ -70,7 +70,7 @@ namespace LibraryManagement.Controllers
                 }
                 var author = await _authorServ.GetAsync(a=>a.AuthorId == book.AuthorId);
 
-                var mapBook  = _mapper.Map<BookDTO>(book);
+                var mapBook  = _mapper.Map<BookWithAuthorDTO>(book);
                 mapBook.Author = _mapper.Map<AuthorDTO>(author);
                 
                 _response.Result = mapBook;
@@ -102,8 +102,10 @@ namespace LibraryManagement.Controllers
                     return BadRequest(_response);
                 }
                 await _bookServ.CreateAsync(book);
+
                 _response.StatusCode = HttpStatusCode.Created;
                 _response.Result = _mapper.Map<BookUpsertDTO>(book);
+
                 return CreatedAtAction(nameof(GetBooks), new {b = bookCreate.Title}, _response);
             }
             catch(Exception ex)

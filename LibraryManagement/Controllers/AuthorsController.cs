@@ -6,6 +6,7 @@ using LibraryManagement.Models.Repository.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using static System.Reflection.Metadata.BlobBuilder;
 
 namespace LibraryManagement.Controllers
 {
@@ -15,12 +16,14 @@ namespace LibraryManagement.Controllers
     public class AuthorsController : ControllerBase
     {
         private readonly IAuthorRepository _authorServ;
+        private readonly IBooksRepository _bookServ;
         private readonly IMapper _mapper;
         protected APIResponse _response;
 
-        public AuthorsController(IAuthorRepository authorServ, IMapper mapper)
+        public AuthorsController(IAuthorRepository authorServ, IBooksRepository bookServ, IMapper mapper)
         {
             _authorServ = authorServ;
+            _bookServ = bookServ;
             _mapper = mapper;
             this._response = new();
         }
@@ -67,23 +70,42 @@ namespace LibraryManagement.Controllers
                 return BadRequest(_response);
             }
         }
-        [HttpGet("{id}/books")]
-        public async Task<ActionResult<APIResponse>> GetBooksAttachedtoAuthor(int id)
+        [HttpGet("{authorId}/books")]
+        public async Task<ActionResult<APIResponse>> GetBooksAttachedtoAuthor(int authorId)
         {
             try
             {
-                var books = await _authorServ.GetBooksAttachedtoAuthor(id);
-                if (books == null || !books.Any())
+                var author = await _authorServ.GetAsync(a => a.AuthorId == authorId);
+                if (author == null)
                 {
                     _response.StatusCode = HttpStatusCode.NotFound;
                     _response.ErrorMessages = new List<string> { "Not Found" };
                     return NotFound(_response);
                 }
-                _response.Result = _mapper.Map<IEnumerable<BookDTO>>(books);
+                var authorBooks = await _bookServ.GetBooksAttachedtoAuthor(author.AuthorId);
+                var authorWithBooks = new AuthorWithBooksDTO()
+                {
+                    AuthorName = author.AuthorName,
+                    Books = authorBooks.Select(b=>new BookDTO() 
+                    { 
+                        Title = b.Title,
+                        CoverType = b.CoverType,
+                        NoOfPages = b.NoOfPages,
+                        ForewardBy = b.ForewardBy,
+                        ISBN = b.ISBN,
+                        Price = b.Price,
+                        Available = b.Available,
+                        TotalCopies = b.TotalCopies,
+                        BorrowedCopies = b.BorrowedCopies
+                    }
+                    ).ToList()
+                };
+                
+                _response.Result = authorWithBooks;
                 _response.StatusCode = HttpStatusCode.OK;
                 return Ok(_response);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _response.StatusCode = HttpStatusCode.BadRequest;
                 _response.IsSuccess = false;
