@@ -10,13 +10,13 @@ using System.Text;
 
 namespace LibraryManagement.Models.Repository.Implementation
 {
-    public class UserRespository : Repository<User>, IUser
+    public class UserRepository : Repository<User>, IUser
     {
         
         private readonly IRepository<User> _repository;
         private readonly ApiSettings _apiSettings;
 
-        public UserRespository(LibraryContext db,IRepository<User> repository, IOptions<ApiSettings> apiSettings): base(db)
+        public UserRepository(LibraryContext db,IRepository<User> repository, IOptions<ApiSettings> apiSettings): base(db)
         {
             _repository = repository;
             _apiSettings = apiSettings.Value;
@@ -52,8 +52,10 @@ namespace LibraryManagement.Models.Repository.Implementation
         {
             List<Claim> claims = new List<Claim>
             {
+                
                 new Claim(ClaimTypes.Name, user.UserName),
                 new Claim(ClaimTypes.Role, user.Role),
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_apiSettings.SecretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);

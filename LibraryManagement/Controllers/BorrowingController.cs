@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Org.BouncyCastle.Asn1.Ocsp;
 using System.Net;
+using System.Security.Claims;
 
 namespace LibraryManagement.Controllers
 {
@@ -123,6 +124,17 @@ namespace LibraryManagement.Controllers
                     _response.ErrorMessages.Add("Invalid input");
                     return BadRequest(_response);
                 }
+                //confirm if authenticated userid and userid in request match
+                int userId;
+                if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out userId) || userId != borrowingDto.UserId)
+                {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.Unauthorized;
+                    _response.ErrorMessages.Add("Unauthorized: You cannot make a request for another user");
+                    return Unauthorized(_response);
+                }
+
+                borrowingDto.UserId = userId;
                 var userExist = await _userServ.GetAsync(b => b.UserId == borrowingDto.UserId);
                 if (userExist == null)
                 {
@@ -133,7 +145,6 @@ namespace LibraryManagement.Controllers
                 }
 
                 var bookExist = await _bookServ.GetAsync(b=>b.BookId == borrowingDto.BookId);
-                
                 if (bookExist == null)
                 {
                     _response.IsSuccess = false;
@@ -192,7 +203,7 @@ namespace LibraryManagement.Controllers
             {
                 _response.IsSuccess = false;
                 _response.StatusCode = HttpStatusCode.BadRequest;
-                _response.ErrorMessages.Add(ex.Message.ToString());
+                _response.ErrorMessages.Add(ex.ToString());
                 return BadRequest(_response);
             }
         }
